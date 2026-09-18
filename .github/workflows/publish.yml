@@ -1,0 +1,62 @@
+name: Publish to npm
+
+# Publishes via npm Trusted Publishing (OIDC) — no NPM_TOKEN or OTP secrets.
+# Prerequisite: the `trilingua` package on npmjs.com must list this repo +
+# `publish.yml` as a Trusted Publisher (package → Settings → Trusted
+# Publisher). npm >= 11.5.1 is required for OIDC auth (node-version: 24).
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Extract version from release tag
+        run: |
+          VERSION="${TAG_NAME#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Publishing version: $VERSION"
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Check npm supports OIDC trusted publishing
+        run: |
+          NPM_VERSION=$(npm --version)
+          echo "npm version: $NPM_VERSION"
+          MINOR=$(echo "$NPM_VERSION" | cut -d. -f1-2)
+          if [ "$(printf '11.5\n%s\n' "$MINOR" | sort -V | head -1)" != "11.5" ]; then
+            echo "npm >= 11.5.1 is required for trusted publishing"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set package version
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish
+        run: npm publish --access public

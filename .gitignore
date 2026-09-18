@@ -1,0 +1,20 @@
+# dependencies
+node_modules
+
+# build
+dist/
+
+# misc
+.DS_Store
+
+# debug
+*.log*
+
+# local env files
+.env
+.env.local
+.env.test
+
+# editors
+.idea/
+.vscode/
