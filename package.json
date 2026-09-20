@@ -1,5 +1,5 @@
 {
-	"name": "rosetta-tools",
+	"name": "rosetta-i18n",
 	"version": "0.1.0",
 	"author": "Ian Hunter <ian@01.studio>",
 	"license": "MIT",
@@ -20,7 +20,7 @@
 		"ai",
 		"openai",
 		"openrouter",
-		"rosetta-tools"
+		"rosetta-i18n"
 	],
 	"type": "module",
 	"sideEffects": false,
