@@ -1,6 +1,7 @@
+import { realpathSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import type { Glossary } from "./config";
 import { Rosetta } from "./index";
 
@@ -293,9 +294,16 @@ async function main(): Promise<void> {
 	await runCatalog(parsed, client);
 }
 
-const isMain =
-	process.argv[1] !== undefined &&
-	import.meta.url === pathToFileURL(process.argv[1]).href;
+// Resolve symlinks — a package bin is a symlink in node_modules/.bin, so
+// `process.argv[1]` is the link path while `import.meta.url` is the real file.
+let isMain = false;
+if (process.argv[1]) {
+	try {
+		isMain = realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+	} catch {
+		isMain = false;
+	}
+}
 
 if (isMain) {
 	main().catch((error: unknown) => {

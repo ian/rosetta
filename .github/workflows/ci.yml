@@ -43,3 +43,8 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: CLI smoke test (via .bin symlink)
+        run: |
+          ln -s "$PWD/dist/esm/cli.js" /tmp/rosetta-i18n
+          /tmp/rosetta-i18n --help | grep -q "translate-catalog"

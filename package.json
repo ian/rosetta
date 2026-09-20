@@ -32,7 +32,7 @@
 	"main": "./dist/esm/index.js",
 	"types": "./dist/types/index.d.ts",
 	"bin": {
-		"rosetta-i18n": "./dist/esm/cli.js"
+		"rosetta-i18n": "dist/esm/cli.js"
 	},
 	"exports": {
 		".": {
