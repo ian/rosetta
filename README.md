@@ -246,6 +246,13 @@ call the route handler or Server Action above.
 > **Edge runtime:** Rosetta only uses `fetch`, so it works on the Edge runtime as
 > long as your endpoint does. Node runtime is recommended for large catalogs.
 
+## Migrating an existing app
+
+- [`docs/migration-guide.md`](docs/migration-guide.md) — playbook for switching
+  an app from another translation stack (inventory → modes → verification).
+- [`docs/agent-prompt.md`](docs/agent-prompt.md) — a ready-to-run agent prompt
+  that executes the migration.
+
 ## Releasing
 
 Releases publish automatically from GitHub Actions via npm
