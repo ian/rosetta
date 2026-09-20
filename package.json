@@ -31,10 +31,17 @@
 	],
 	"main": "./dist/esm/index.js",
 	"types": "./dist/types/index.d.ts",
+	"bin": {
+		"rosetta-i18n": "./dist/esm/cli.js"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/types/index.d.ts",
 			"default": "./dist/esm/index.js"
+		},
+		"./next": {
+			"types": "./dist/types/next.d.ts",
+			"default": "./dist/esm/next.js"
 		},
 		"./config": {
 			"types": "./dist/types/config.d.ts",
@@ -44,7 +51,7 @@
 	},
 	"scripts": {
 		"clean": "rm -rf ./dist",
-		"build": "rollup -c && tsc -p tsconfig.build.json",
+		"build": "rollup -c && tsc -p tsconfig.build.json && chmod +x dist/esm/cli.js",
 		"build:watch": "rollup -c -w",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
@@ -55,6 +62,14 @@
 		"format:fix": "biome format --write",
 		"lint": "biome check",
 		"lint:fix": "biome check --write"
+	},
+	"peerDependencies": {
+		"next": ">=14.0.0"
+	},
+	"peerDependenciesMeta": {
+		"next": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.12",

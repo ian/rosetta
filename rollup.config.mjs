@@ -1,20 +1,45 @@
 import esbuild from "rollup-plugin-esbuild";
 
-export default {
-	input: "src/index.ts",
-	output: {
-		dir: "dist/esm",
-		format: "esm",
-		sourcemap: true,
+const esbuildPlugin = esbuild({
+	include: /\.[jt]s?$/,
+	exclude: /node_modules/,
+	sourceMap: true,
+	minify: process.env.NODE_ENV === "production",
+	target: "esnext",
+	tsconfig: "tsconfig.json",
+});
+
+const isNodeBuiltin = (id) => id.startsWith("node:");
+
+export default [
+	{
+		input: "src/index.ts",
+		output: {
+			dir: "dist/esm",
+			format: "esm",
+			sourcemap: true,
+		},
+		plugins: [esbuildPlugin],
 	},
-	plugins: [
-		esbuild({
-			include: /\.[jt]s?$/,
-			exclude: /node_modules/,
-			sourceMap: true,
-			minify: process.env.NODE_ENV === "production",
-			target: "esnext",
-			tsconfig: "tsconfig.json",
-		}),
-	],
-};
+	{
+		input: "src/cli.ts",
+		output: {
+			file: "dist/esm/cli.js",
+			format: "esm",
+			sourcemap: true,
+			banner: "#!/usr/bin/env node",
+		},
+		external: [isNodeBuiltin],
+		plugins: [esbuildPlugin],
+	},
+	{
+		input: "src/next.ts",
+		output: {
+			file: "dist/esm/next.js",
+			format: "esm",
+			sourcemap: true,
+		},
+		external: ["next/cache", isNodeBuiltin],
+		plugins: [esbuildPlugin],
+	},
+];

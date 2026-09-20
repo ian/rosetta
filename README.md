@@ -101,6 +101,37 @@ const out = await rosetta.translate(
 Translates a single string. Throws on a non-OK response (unlike `translate`,
 which degrades gracefully at the batch level).
 
+## CLI
+
+Translate a JSON catalog from the command line — run it in CI or as a release
+step. It reads a source catalog, translates it, and writes one file per target
+locale.
+
+```bash
+OPENROUTER_API_KEY=sk-... npx rosetta-i18n translate-catalog messages/en.json \
+  --target es --target pt-BR \
+  --merge \
+  --context "Next.js UI catalog"
+```
+
+Writes `messages/es.json` and `messages/pt-BR.json` (flattened keys preserved).
+
+| Flag | Description |
+| --- | --- |
+| `--target <locale>` | Target locale (repeatable, required) |
+| `--source <locale>` | Source locale (default `en`) |
+| `--out <dir>` | Output directory (default: the input file's directory) |
+| `--merge` | Only translate keys missing from an existing `<target>.json` |
+| `--context <text>` | Broad context passed to the model |
+| `--brand-voice <text>` | Brand voice briefing (default `ROSETTA_BRAND_VOICE`) |
+| `--glossary <file>` | JSON file of per-locale exact term mappings |
+| `--model <id>` / `--base-url <url>` | Override the endpoint/model |
+| `--concurrency` / `--batch-size` / `--retries` | Tune batching |
+| `--dry-run` | Print the plan without calling the model |
+
+`--merge` is the CI-friendly mode: add keys to `en.json`, rerun, and only the new
+keys hit the model — existing translations are preserved for diffing and review.
+
 ## React & Next.js
 
 Rosetta calls an LLM with your API key, so it runs **server-side only**. Never
@@ -108,60 +139,45 @@ import it in a Client Component (`"use client"`) — bundle the key out with
 [`server-only`](https://www.npmjs.com/package/server-only) and expose
 translations through server code.
 
-```bash
-pnpm add rosetta-i18n server-only
-```
+### Server helpers (`rosetta-i18n/next`)
 
-### One shared instance
+The `next` entrypoint (optional `next` peer) wires env config, a memoized
+instance, and Next's data cache:
 
 ```ts
 // lib/rosetta.ts
 import "server-only";
-import { Rosetta } from "rosetta-i18n";
+import { cachedTranslate, getRosetta } from "rosetta-i18n/next";
 
-export const rosetta = new Rosetta({
-	apiKey: process.env.OPENROUTER_API_KEY!,
-	model: "anthropic/claude-sonnet-4.5",
-	brandVoice: {
-		variations: {
-			"*": "Confident, precise, editorial. Short sentences, active voice.",
-			es: "Tono editorial de gastronomía, accesible. Tercera persona.",
-		},
-	},
-	glossary: { es: { "award-winning": "premiado" } },
-});
-```
+// Memoized instance built from env (see table below).
+export const rosetta = getRosetta();
 
-### Recommended: pre-translate message catalogs at build time
-
-For `next-intl` / `react-i18next`, translate the locale JSON once and ship it —
-no LLM call in the request path.
-
-```ts
-// scripts/translate-catalog.ts — run with `tsx`
-import { writeFile } from "node:fs/promises";
-import { Rosetta } from "rosetta-i18n";
-import en from "../messages/en.json";
-
-const rosetta = new Rosetta({
-	apiKey: process.env.OPENROUTER_API_KEY!,
-	model: "anthropic/claude-sonnet-4.5",
-	brandVoice: { variations: { "*": "Editorial, concise." } },
-});
-
-for (const target of ["es", "pt-BR"]) {
-	const messages = await rosetta.translate(en, {
-		source: "en",
-		target,
-		context: "Next.js UI catalog",
-		hints: { "nav.bookings": ["navigation", "top bar"] },
-	});
-	await writeFile(
-		`messages/${target}.json`,
-		JSON.stringify(messages, null, 2),
-	);
+// Cached translation — keyed on source/target/payload.
+export async function translateCopy(
+  data: Record<string, string>,
+  target: string,
+) {
+  return cachedTranslate(data, { source: "en", target }, {
+    revalidate: 60 * 60 * 24,
+    tags: ["i18n"],
+  });
 }
 ```
+
+| Env var | Required | Default |
+| --- | --- | --- |
+| `OPENROUTER_API_KEY` | yes | — |
+| `ROSETTA_MODEL` | no | `anthropic/claude-sonnet-4.5` |
+| `ROSETTA_BASE_URL` | no | `https://openrouter.ai/api/v1` |
+| `ROSETTA_BRAND_VOICE` | no | — (the `*` brand voice) |
+
+`createRosetta(overrides)` is also exported if you'd rather pass config
+explicitly.
+
+### Recommended: pre-translate message catalogs with the CLI
+
+For `next-intl` / `react-i18next`, translate the locale JSON once and ship it —
+no LLM call in the request path. Use the [CLI](#cli) above, then load the files:
 
 ```ts
 // i18n/request.ts (next-intl)
@@ -176,10 +192,10 @@ export default getRequestConfig(async ({ locale }) => ({
 
 ```tsx
 // app/[locale]/hero.tsx
-import { rosetta } from "@/lib/rosetta";
+import { getRosetta } from "rosetta-i18n/next";
 
 export async function Hero({ locale }: { locale: string }) {
-	const copy = await rosetta.translate(
+	const copy = await getRosetta().translate(
 		{ hero: "Every awarded restaurant in the world" },
 		{ source: "en", target: locale, context: "home hero" },
 	);
@@ -187,20 +203,9 @@ export async function Hero({ locale }: { locale: string }) {
 }
 ```
 
-Cache per-request translations with React's `cache` or
-`unstable_cache` so they aren't re-fetched on every render:
+Prefer `cachedTranslate` from `rosetta-i18n/next` (above) or React's `cache` so
+repeated renders reuse the result instead of re-calling the model.
 
-```ts
-import { unstable_cache } from "next/cache";
-import { rosetta } from "@/lib/rosetta";
-
-export const translateCached = unstable_cache(
-	async (data: Record<string, string>, target: string) =>
-		rosetta.translate(data, { source: "en", target }),
-	["rosetta"],
-	{ revalidate: 60 * 60 * 24 },
-);
-```
 
 ### Route Handler
 
