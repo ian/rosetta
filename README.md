@@ -1,4 +1,4 @@
-# Trilingua
+# Rosetta Tools
 
 Self-hosted AI translation engine. One text, every language — translate key-value content across locales through any OpenAI-compatible LLM, with brand voice and glossary enforcement.
 
@@ -9,15 +9,15 @@ No vendor lock-in and no per-seat translation SaaS — bring your own LLM endpoi
 ## Install
 
 ```bash
-pnpm add trilingua
+pnpm add rosetta-tools
 # or
-npm install trilingua
+npm install rosetta-tools
 ```
 
 ## Quick start
 
 ```ts
-import { Rosetta } from "trilingua";
+import { Rosetta } from "rosetta-tools";
 
 const rosetta = new Rosetta({
 	apiKey: process.env.OPENROUTER_API_KEY,
