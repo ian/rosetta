@@ -4,13 +4,13 @@
 	"author": "Ian Hunter <ian@01.studio>",
 	"license": "MIT",
 	"description": "Self-hosted AI translation engine — translate key-value content across locales through any OpenAI-compatible LLM, with brand voice and glossary enforcement.",
-	"homepage": "https://github.com/ian/trilingua#readme",
+	"homepage": "https://github.com/ian/rosetta#readme",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ian/trilingua.git"
+		"url": "git+https://github.com/ian/rosetta.git"
 	},
 	"bugs": {
-		"url": "https://github.com/ian/trilingua/issues"
+		"url": "https://github.com/ian/rosetta/issues"
 	},
 	"keywords": [
 		"translation",
