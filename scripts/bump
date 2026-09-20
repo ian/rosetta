@@ -1,0 +1,28 @@
+#!/bin/bash
+set -euo pipefail
+
+# Bump the package version, commit, tag, and push.
+# Usage: pnpm bump [patch|minor|major]
+
+VERSION_TYPE=${1:-patch}
+
+if [[ "$VERSION_TYPE" != "patch" && "$VERSION_TYPE" != "minor" && "$VERSION_TYPE" != "major" ]]; then
+	echo "Invalid version type. Use 'patch', 'minor', or 'major'."
+	exit 1
+fi
+
+# Bump package.json only — we create a single commit and tag below.
+npm version "$VERSION_TYPE" --no-git-tag-version
+
+VERSION=$(node -p "require('./package.json').version")
+
+git add package.json
+git commit -m "chore: bump version to $VERSION"
+git tag "v$VERSION"
+
+git push
+git push --tags
+
+echo ""
+echo "Bumped to v$VERSION and pushed."
+echo "Run 'pnpm release' to publish the GitHub release (triggers npm-publish)."

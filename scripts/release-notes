@@ -1,0 +1,51 @@
+#!/bin/bash
+set -euo pipefail
+
+# Generate release notes between two git refs.
+# Usage: ./scripts/release-notes [from] [to]
+# Examples:
+#   ./scripts/release-notes              # Last tag to HEAD
+#   ./scripts/release-notes v0.1.0       # v0.1.0 to HEAD
+#   ./scripts/release-notes v0.1.0 v0.2.0
+
+FROM_REF=${1:-}
+TO_REF=${2:-HEAD}
+
+# If no from ref provided, get the most recent tag.
+if [[ -z "$FROM_REF" ]]; then
+	FROM_REF=$(git describe --tags --abbrev=0 2>/dev/null || true)
+	if [[ -z "$FROM_REF" ]]; then
+		echo "Error: No tags found and no 'from' ref provided" >&2
+		exit 1
+	fi
+fi
+
+# Verify refs exist.
+if ! git rev-parse "$FROM_REF" >/dev/null 2>&1; then
+	echo "Error: Invalid ref '$FROM_REF'" >&2
+	exit 1
+fi
+
+if ! git rev-parse "$TO_REF" >/dev/null 2>&1; then
+	echo "Error: Invalid ref '$TO_REF'" >&2
+	exit 1
+fi
+
+# Get the repo URL for commit links.
+REPO_URL=$(git remote get-url origin | sed 's/\.git$//' | sed 's/git@github.com:/https:\/\/github.com\//')
+
+echo "## What's Changed"
+echo ""
+
+git log --pretty=format:"%s|%h" "$FROM_REF..$TO_REF" | while IFS='|' read -r message hash; do
+	# Skip version bump commits.
+	if [[ "$message" == *"chore: bump"* ]] || [[ "$message" == *"[skip ci]"* ]]; then
+		continue
+	fi
+	first_char=$(echo "$message" | cut -c1 | tr '[:lower:]' '[:upper:]')
+	rest=$(echo "$message" | cut -c2-)
+	echo "* ${first_char}${rest} (${hash})"
+done
+
+echo ""
+echo "**Full Changelog**: $REPO_URL/compare/$FROM_REF...$TO_REF"

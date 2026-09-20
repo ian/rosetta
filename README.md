@@ -101,6 +101,24 @@ const out = await rosetta.translate(
 Translates a single string. Throws on a non-OK response (unlike `translate`,
 which degrades gracefully at the batch level).
 
+## Releasing
+
+Releases publish automatically from GitHub Actions via npm
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC) — no npm
+token required.
+
+```bash
+pnpm bump patch   # bump package.json, commit, tag, push
+pnpm release      # create the GitHub Release -> triggers npm-publish
+```
+
+- `pnpm bump` accepts `patch`, `minor`, or `major` (default `patch`).
+- `pnpm release` creates the GitHub Release for the latest tag with generated
+  release notes, which triggers `.github/workflows/npm-publish.yml`.
+
+One-time setup (first publish and Trusted Publisher) is documented in
+[`.github/workflows/npm-publish.yml`](.github/workflows/npm-publish.yml).
+
 ## Development
 
 ```bash

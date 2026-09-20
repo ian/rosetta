@@ -1,9 +1,14 @@
 name: Publish to npm
 
 # Publishes via npm Trusted Publishing (OIDC) — no NPM_TOKEN or OTP secrets.
+#
 # Prerequisite: the `rosetta-i18n` package on npmjs.com must list this repo +
-# `publish.yml` as a Trusted Publisher (package → Settings → Trusted
-# Publisher). npm >= 11.5.1 is required for OIDC auth (node-version: 24).
+# `npm-publish.yml` as a Trusted Publisher (package -> Settings -> Trusted
+# publishing), with "npm publish" allowed. The package must exist first, so
+# run one manual `npm publish` for the initial version.
+#
+# Triggered by publishing a GitHub Release (see `pnpm bump` + `pnpm release`).
+# Requires npm >= 11.5.1 and Node >= 22.14 for OIDC auth (node-version: 24).
 
 on:
   release:
@@ -33,6 +38,7 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
 
       - name: Check npm supports OIDC trusted publishing
         run: |
@@ -52,8 +58,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Set package version
-        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+      - name: Verify version matches tag
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "package.json version $PKG_VERSION does not match release tag $VERSION"
+            exit 1
+          fi
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build

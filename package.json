@@ -49,6 +49,8 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest",
+		"bump": "./scripts/bump",
+		"release": "./scripts/release",
 		"format": "biome format",
 		"format:fix": "biome format --write",
 		"lint": "biome check",
