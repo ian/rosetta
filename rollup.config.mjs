@@ -13,7 +13,7 @@ const isNodeBuiltin = (id) => id.startsWith("node:");
 
 export default [
 	{
-		input: "src/index.ts",
+		input: ["src/index.ts", "src/config.ts"],
 		output: {
 			dir: "dist/esm",
 			format: "esm",
