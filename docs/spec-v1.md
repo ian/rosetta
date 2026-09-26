@@ -101,7 +101,7 @@ Edit the source language, run `push` (or let CI or an agent run it), and commit 
 | `files[].format` | no | `json` or `jsonc`. Inferred from the file extension if omitted. |
 | `files[].context` | no | Sent with every batch from this file. |
 | `files[].lockedKeys` / `preservedKeys` / `ignoredKeys` | no | Key globs. See §8. |
-| `engine.model` | yes | `ROSETTA_MODEL` overrides it. |
+| `engine.model` | for `push` | `ROSETTA_MODEL` overrides it. `check`, `status`, and `purge` work without it. |
 | `engine.baseURL` | no | Any OpenAI-compatible endpoint. Defaults to OpenRouter. `ROSETTA_BASE_URL` overrides it. |
 | `engine.apiKeyEnv` | no | Name of the environment variable holding the key. Defaults to `ROSETTA_API_KEY`, then falls back to `OPENROUTER_API_KEY`. |
 | `engine.temperature` | no | Default `0.3`. |

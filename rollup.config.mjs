@@ -19,6 +19,7 @@ export default [
 			format: "esm",
 			sourcemap: true,
 		},
+		external: isNodeBuiltin,
 		plugins: [esbuildPlugin],
 	},
 	{
@@ -29,7 +30,7 @@ export default [
 			sourcemap: true,
 			banner: "#!/usr/bin/env node",
 		},
-		external: [isNodeBuiltin],
+		external: isNodeBuiltin,
 		plugins: [esbuildPlugin],
 	},
 	{
@@ -39,7 +40,7 @@ export default [
 			format: "esm",
 			sourcemap: true,
 		},
-		external: ["next/cache", isNodeBuiltin],
+		external: (id) => id === "next/cache" || isNodeBuiltin(id),
 		plugins: [esbuildPlugin],
 	},
 ];
