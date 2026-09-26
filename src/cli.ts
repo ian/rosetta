@@ -2,8 +2,8 @@ import { realpathSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Glossary } from "./config";
-import { Rosetta } from "./index";
+import { Rosetta } from "./rosetta";
+import type { Glossary } from "./types";
 
 export const HELP = Symbol("help");
 
@@ -245,6 +245,8 @@ export async function buildClient(options: CatalogOptions): Promise<Rosetta> {
 		batchSize: options.batchSize,
 		concurrency: options.concurrency,
 		retries: options.retries,
+		// translate-catalog keeps its 0.x behavior: skip failed keys, write the rest.
+		onBatchError: "skip",
 	});
 }
 

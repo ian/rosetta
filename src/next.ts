@@ -1,8 +1,8 @@
 import { unstable_cache } from "next/cache";
-import type { RosettaConfig, TranslateDataOptions } from "./config";
-import { Rosetta } from "./index";
+import { Rosetta } from "./rosetta";
+import type { RosettaConfig, TranslateDataOptions } from "./types";
 
-export type { RosettaConfig, TranslateDataOptions } from "./config";
+export type { RosettaConfig, TranslateDataOptions } from "./types";
 
 /**
  * Build a server-side Rosetta instance. Config comes from `overrides` first,
