@@ -382,9 +382,9 @@ The changelog lists these breaking changes:
 
 ## 17. Follow-up GitHub issues
 
-1. **Markdown/MDX support.** Translate prose and opted-in frontmatter. Keys are positional in these formats, so `--key` is refused for them.
-2. **MCP server for agents**: `status`, `push`, `check` and glossary edits.
-3. **Warn before overwriting a hand edit.** This requires storing a hash of the target value in the lockfile.
+1. **Markdown/MDX support** (#1). Translate prose and opted-in frontmatter. Keys are positional in these formats, so `--key` is refused for them.
+2. **MCP server for agents** (#2): `status`, `push`, `check` and glossary edits.
+3. **Warn before overwriting a hand edit** (#3). This requires storing a hash of the target value in the lockfile.
 4. **More formats** (#4): YAML, PO, XLIFF, ARB.
 5. **Key rename detection** (#5).
 
