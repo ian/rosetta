@@ -46,5 +46,13 @@ jobs:
 
       - name: CLI smoke test (via .bin symlink)
         run: |
-          ln -s "$PWD/dist/esm/cli.js" /tmp/rosetta-i18n
-          /tmp/rosetta-i18n --help | grep -q "translate-catalog"
+          ln -s "$PWD/dist/esm/cli.js" /tmp/rosetta
+          /tmp/rosetta --help | grep -q "rosetta <command>"
+          /tmp/rosetta --version
+          # End-to-end without a model: init, adopt existing translations, check.
+          mkdir -p /tmp/smoke/messages && cd /tmp/smoke
+          echo '{"hello":"Hello {name}"}' > messages/en.json
+          echo '{"hello":"Hola {name}"}' > messages/es.json
+          /tmp/rosetta init --yes
+          /tmp/rosetta push
+          /tmp/rosetta check
