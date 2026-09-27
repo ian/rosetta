@@ -25,6 +25,7 @@ npx rosetta check     # CI gate: fails if anything is stale or broken (no API ke
 ## Contents
 
 - [Quick start](#quick-start)
+- [Set up with your AI agent](#set-up-with-your-ai-agent)
 - [How it works](#how-it-works)
 - [Configuration](#configuration)
 - [Commands](#commands)
@@ -67,6 +68,26 @@ anything that was missed.
 Already have translations? The first `push` **adopts** them — it records them in
 the lockfile without retranslating, so it's free. Only strings that are missing,
 changed, or broken go to the model.
+
+## Set up with your AI agent
+
+Copy this into your coding agent (Claude Code, Cursor, Codex, opencode, …) from your
+project root:
+
+```text
+Set up Rosetta (npm: rosetta-i18n) for translations in this repo. Follow https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md step by step: discover our locale files and current translation setup and report back, configure .rosetta/config.json, adopt our existing translations with `rosetta status` + `rosetta push` (list any translations it flags as broken), add tests and CI, remove the old translation tooling, document the workflow in AGENTS.md, and open one PR. Ask me before running `push --force`, before any large translation run, and before choosing how translations land if it's unclear.
+```
+
+- For agents that can't fetch URLs, use the full, self-contained prompt in
+  [`docs/agent-prompt.md`](docs/agent-prompt.md).
+- To give your agent Rosetta know-how for everyday requests ("add a German string",
+  "why is the i18n job red?"), install the skill:
+
+  ```bash
+  mkdir -p .claude/skills/rosetta && curl -fsSL https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md -o .claude/skills/rosetta/SKILL.md
+  ```
+
+  Other agents: [`docs/agent-prompt.md#install-the-skill`](docs/agent-prompt.md#install-the-skill).
 
 ## How it works
 

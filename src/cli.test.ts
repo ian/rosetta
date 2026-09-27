@@ -356,6 +356,15 @@ describe("rosetta CLI", () => {
 			});
 		});
 
+		it("warns when positional patterns match no source files", async () => {
+			const s = setup();
+			const result = await s.exec(["push", "content/en/**"]);
+			expect(result.code).toBe(EXIT.ok);
+			expect(result.stderr).toMatch(
+				/no configured source files match "content\/en\/\*\*"/,
+			);
+		});
+
 		it("unknown locales are a usage error", async () => {
 			const s = setup();
 			expect((await s.exec(["push", "--locale", "xx"])).code).toBe(EXIT.usage);

@@ -1,158 +1,90 @@
-# Agent prompt — migrate an app to rosetta-i18n
+# Set up Rosetta with an AI agent
 
-Copy everything below the line into your agent. Fill in the `<placeholders>`.
-This prompt is self-contained but assumes the agent can read
-[`migration-guide.md`](./migration-guide.md) from the `rosetta-i18n` repo (or the
-package README) for the full spec.
+Paste the prompt below into your coding agent (Claude Code, Cursor, Codex,
+opencode, …) from the root of your project. The agent will find your locale files,
+configure Rosetta, adopt your existing translations for free, report any
+translations that are broken today, wire up CI, and open one PR.
 
----
+For ongoing use, also install the [Rosetta skill](../skills/rosetta/SKILL.md) so
+your agent knows the day-to-day commands. See
+[Install the skill](#install-the-skill).
 
-You are a senior engineer migrating **`<APP_REPO>`** from `<CURRENT_TRANSLATION_STACK>`
-to **`rosetta-i18n`**. Work deliberately: diagnose before changing code, make the
-smallest correct change, verify it, and ship one focused pull request. Do not
-stop at a local diff.
+## The prompt
 
-## Read first
+````text
+Set up Rosetta (npm: rosetta-i18n) for translations in this repository, then open one focused PR.
 
-- The spec: `docs/migration-guide.md` in `ian/rosetta` (or
-  https://github.com/ian/rosetta/blob/main/docs/migration-guide.md).
-- The package: https://www.npmjs.com/package/rosetta-i18n — entrypoints
-  `rosetta-i18n` (engine), `rosetta-i18n/next` (server helpers), and the
-  `rosetta` CLI (`init`, `push`, `check`, `status`; config in `.rosetta/config.json`).
-- A reference implementation: `bestrestaurantsguide/brg` PR #943 and
-  `apps/api/src/lib/translation.ts`.
+Rosetta is a free, open-source, self-run localization CLI (a DIY Lingo.dev). It translates our source-language JSON/JSONC locale files into every target locale with an LLM, and keeps all state in the repo: .rosetta/config.json (JSONC) and .rosetta/lock.json (a hash of the source string each translation came from). There's no Rosetta service or account. The only credential is our model provider's key: OPENROUTER_API_KEY by default, or the variable named by engine.apiKeyEnv. Never print, commit, or go looking for keys.
 
-## Phase 0 — Discovery (no edits)
+First, read the full instructions and follow them: https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md
+If you can't fetch URLs, follow this summary:
 
-Answer these with file paths and line numbers. Do not guess.
+1. Discover, with no edits, and report back:
+   - the i18n runtime and loader;
+   - the source-locale files (Rosetta v1 supports JSON/JSONC; source copy in TS/JS needs an export-to-JSON script; Markdown/YAML/PO stay as they are);
+   - the canonical locale list and everywhere it's mirrored;
+   - the current translation engine (Lingo.dev, scripts, vendor, hand-written) and its brand voice, context, do-not-translate and structural-field lists;
+   - tests that enforce locale parity;
+   - how translations land in CI today, and whether OPENROUTER_API_KEY is a CI secret;
+   - formatters that touch locale files;
+   - in a monorepo, which package owns the locale files (put .rosetta/ there).
+2. Install: `npm i -D rosetta-i18n@next` (the `next` tag until 1.0.0 is stable; use the repo's package manager), then `npx rosetta init` (auto-detect), or `init --pattern <source file> --target <locales> --model <id>`, or `init --from-lingo`. Always run the local `rosetta` command. Never run a bare `npx rosetta` without a local install; it's an unrelated package.
+3. Configure .rosetta/config.json:
+   - targetLocales = the app's locale list minus the source;
+   - one files[] entry per source file or glob. The path must contain the source locale, e.g. messages/en.json, locales/en/**/*.json, pages.en.json;
+   - a context per file;
+   - lockedKeys ("**.href" style) for structural strings;
+   - move the old engine's brand voice, rules, and do-not-translate terms into engine.brandVoice, engine.rules, and engine.glossary["*"];
+   - keep the model the project already uses, if any.
+4. Adopt: run `npx rosetta status` and `npx rosetta status --json` (no key needed).
+   - Existing valid translations show as "adopt", and push records them for free.
+   - Keys marked translate/invalid are translations that are broken today. List them for me by key and locale.
+   - Run `npx rosetta push` if nothing needs a model, or if a key is set. Otherwise leave lock.json for the first CI run.
+   - Confirm that `git diff` on target files shows no formatting churn, and that `npx rosetta check` passes after a push.
+5. Add tests: config targetLocales equals the app's locale list (use loadConfig from rosetta-i18n); lockedKeys matches any structural-field list in code; any export script exports the expected keys.
+6. CI: keep whatever landing flow already works and swap in `rosetta push`, or propose one of:
+   - local/agent pushes plus a `rosetta check` gate;
+   - `uses: ian/rosetta@<pinned version>` with mode: pull-request, commit, or check.
+   Watch for these:
+   - a locale-parity test means PRs that add or remove keys must run `rosetta push` themselves (removals need no key);
+   - `check` on PRs conflicts with post-merge bots;
+   - GITHUB_TOKEN commits and PRs don't trigger other workflows, so use an App token or PAT, or the existing landing logic;
+   - push exits 1 when some locales failed validation: land the rest, then fail the job.
+7. Clean up and document:
+   - delete the old engine (scripts, manifests, force-retranslate workarounds, .lingo/, i18n.json/i18n.lock) and unused deps;
+   - add one AGENTS.md paragraph: edit the source only, never hand-edit other locales, the status/push commands, how translations land, and the add/remove-key rule;
+   - add package scripts for status/push (plus an export step if there is one).
+   Run typecheck, lint, and tests. Open one PR that includes the broken translations you found.
 
-1. What i18n runtime is used, and where is its config? (`next-intl`,
-   `react-i18next`, `FormatJS`, custom.) Find the loader (e.g.
-   `i18n/request.ts`), provider, and message files.
-2. What is the current translation engine? Find the vendor/in-repo code that
-   produces translated strings. Grep for names like
-   `translate`, `lingo`, `i18n`, `locale`, `crowdin`, `lokalise`, `phrase`.
-3. Classify every translated surface:
-   - static UI strings → **Mode A (catalogs)**
-   - database/CMS content → **Mode B (server content)**
-   - per-request dynamic copy / RSC → **Mode C (on-demand)**
-4. Where do translations live? JSON files, a DB table, a KV store, a vendor?
-   Show the storage shape.
-5. Source locale and full target-locale list. Where is that list defined, and is
-   it mirrored anywhere (SEO config, sitemaps, switcher)?
-6. When does translation run today — build, request, or mutation? Is it
-   blocking? How do failures behave?
-7. Is `OPENROUTER_API_KEY` available in the deploy environment? If not, flag it;
-   the migration must no-op gracefully without it.
+Stop and ask me before: choosing how translations land if it's unclear, running `push --force`, or anything that would send a large number of strings to the model (check with `npx rosetta push --estimate`).
+````
 
-Produce a short report: a table of surfaces → chosen mode, the storage
-location, and the locale list.
+## Install the skill
 
-## Phase 1 — Plan
-
-State the plan before editing:
-
-- Modes chosen per surface, and why.
-- Files to add/change/delete.
-- How source-locale fallback works.
-- What runs at build vs. request vs. mutation.
-- The verification you will run.
-
-If a decision is genuinely ambiguous (e.g. the locale list is inconsistent),
-pick the safest option, state the tradeoff in one line, and proceed.
-
-## Phase 2 — Implement
-
-**Install and configure** (server-side only):
+The skill teaches your agent Rosetta's commands, config, and troubleshooting, so
+day-to-day requests like "add a Spanish string for X" or "why is the i18n job red?"
+just work.
 
 ```bash
-pnpm add rosetta-i18n
-pnpm add server-only   # if any importer must never reach the client bundle
+# Claude Code (project-level)
+mkdir -p .claude/skills/rosetta && curl -fsSL https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md -o .claude/skills/rosetta/SKILL.md
+
+# opencode / other agents that read ~/.agents/skills (user-level)
+mkdir -p ~/.agents/skills/rosetta && curl -fsSL https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md -o ~/.agents/skills/rosetta/SKILL.md
 ```
 
-Add `OPENROUTER_API_KEY` (and optionally `ROSETTA_MODEL`, `ROSETTA_BASE_URL`,
-`ROSETTA_BRAND_VOICE`) to the server env. Never expose them to the client.
+The skill also ships in the npm package at
+`node_modules/rosetta-i18n/skills/rosetta/SKILL.md`, so you can copy or symlink it
+from there to keep it matched to your installed version.
 
-Create a single server-only instance:
+## Runtime translation (DB/CMS content, per-request copy)
 
-```ts
-// lib/rosetta.ts
-import "server-only";
-import { getRosetta } from "rosetta-i18n/next";
-export const rosetta = getRosetta();
-```
+The prompt covers locale files. For content stored in a database or generated per
+request, add this to the prompt:
 
-If the app is not Next.js, construct `new Rosetta({ ... })` from
-`rosetta-i18n` directly.
+````text
+Also translate <entity> content stored in <table/CMS>: on create/update, call Rosetta's library server-side (new Rosetta({...}).translateEntries(fields, { source, target, context })). It returns { translations, failures } and doesn't throw for per-key problems. Store only `translations`, keyed (entityId, field, locale), and queue the work off the request path. Fall back to the source locale at read time, and backfill existing rows ordered by traffic. For Next.js server code, use cachedTranslate from rosetta-i18n/next. Never import Rosetta in client code.
+````
 
-**Mode A — catalogs.** Run `npx rosetta init` (or `init --from-lingo`, or
-`init --pattern <file> --target <locales>`), then fill in `engine` in
-`.rosetta/config.json` (model, brand voice, rules, glossary) and a `context` per
-file. Run `npx rosetta push`: existing translations are adopted and only missing,
-changed, or broken strings are translated. Commit `.rosetta/` with the locale files,
-wire the runtime loader, add `rosetta check` to CI, and pick a delivery workflow
-from `docs/delivery.md`. Export content that lives in code to JSON first. Do not
-call the model at request time.
-
-**Mode B — server content.** Add storage keyed by `(entityId, field, locale)`.
-Write a non-throwing `translateAndStore` wrapper around
-`rosetta.translateEntries()`, which returns `{ translations, failures }` without
-throwing (English/source is the source of truth; persist only `translations`). Queue it off the request
-path on mutations. Fall back to the source locale at read time. Add a backfill
-script ordered by traffic. Re-translate on edit via the existing change/webhook
-path.
-
-**Mode C — on-demand.** Use `cachedTranslate` from `rosetta-i18n/next` with a
-sensible `revalidate` and cache tags. Prefer Mode A when strings are known ahead
-of time.
-
-**Brand voice & glossary.** Author a per-locale brand voice with a `*` fallback,
-list proper nouns that must not be translated, and add glossary entries for
-recurring terms. Keep them in the repo.
-
-## Phase 3 — Verify (all must pass)
-
-- `pnpm install` (keep the lockfile in sync — a stale lockfile breaks
-  `--frozen-lockfile` CI).
-- `pnpm typecheck` and `pnpm lint`.
-- `pnpm test` (or the repo's test command), including any new tests.
-- Add a unit test for the wrapper with a mocked `fetch` (batching, retries,
-  partial failure).
-- Prefer checks that need no API key: `npx rosetta check` must pass, and
-  `npx rosetta status --json` must show nothing pending. For Mode B wrappers, run
-  against a local OpenAI-compatible mock and assert the stored rows.
-- Confirm the client bundle has no API key and no `rosetta-i18n` import.
-- Run the app's build.
-
-## Phase 4 — Deliver
-
-- One branch, one focused PR. Do not mix in unrelated changes.
-- Rebase on the default branch; do not merge the default branch into the feature
-  branch.
-- PR body: inventory → chosen modes → files changed → verification output →
-  rollback note (env-gated, so disabling the key reverts behavior).
-- Remove the old engine and prune now-unused dependencies in the same PR, only
-  after the new path is verified.
-
-## Guardrails
-
-- Server-only: the API key and `rosetta-i18n` must never ship to the client.
-- Translation must never block or break a user mutation or a page render.
-- Always fall back to the source locale for missing translations.
-- Do not commit secrets, `.env*`, or vendor dashboards' exports as source of
-  truth.
-- Do not rewrite unrelated i18n config or "improve" copy beyond the migration.
-- If the app has no place to store translations and no build-time catalog, stop
-  and report the gap instead of inventing infrastructure.
-
-## Definition of done
-
-- [ ] Discovery report with file paths.
-- [ ] Mode(s) implemented per surface.
-- [ ] Single server-only instance, env-driven.
-- [ ] Source-locale fallback verified.
-- [ ] Unit + e2e tests added and passing.
-- [ ] typecheck / lint / build green.
-- [ ] Client bundle free of the key and of `rosetta-i18n`.
-- [ ] Old engine removed, deps pruned.
-- [ ] Focused PR opened with the inventory and verification in the description.
+See [`migration-guide.md`](./migration-guide.md) for the full playbook for those
+modes.

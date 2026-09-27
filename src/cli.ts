@@ -468,6 +468,7 @@ async function cmdPush(ctx: Context): Promise<number> {
 		onLocale: (locale) => printPushLocale(ctx, locale),
 	});
 
+	warnNoMatches(ctx, result.locales.length);
 	if (ctx.json) {
 		ctx.out(JSON.stringify(result, null, 2));
 	} else if (estimate && result.estimate) {
@@ -506,6 +507,15 @@ async function cmdPush(ctx: Context): Promise<number> {
 	return result.ok ? EXIT.ok : EXIT.failed;
 }
 
+/** Positional patterns that match no configured source file are almost always a typo. */
+function warnNoMatches(ctx: Context, jobs: number): void {
+	if (jobs === 0 && ctx.args.positionals.length > 0 && !ctx.json) {
+		ctx.io.stderr(
+			`warning: no configured source files match ${ctx.args.positionals.map((p) => `"${p}"`).join(", ")} (patterns match source paths like those in .rosetta/config.json files[].pattern).`,
+		);
+	}
+}
+
 function printCheck(ctx: Context, result: CheckResult): void {
 	for (const locale of result.locales) {
 		if (locale.ok) {
@@ -538,6 +548,7 @@ function cmdCheck(ctx: Context): number {
 		patterns: ctx.args.positionals,
 		locales: list(ctx.args.flags.locale),
 	});
+	warnNoMatches(ctx, result.locales.length);
 	if (ctx.json) ctx.out(JSON.stringify(result, null, 2));
 	else printCheck(ctx, result);
 	return result.ok ? EXIT.ok : EXIT.stale;
