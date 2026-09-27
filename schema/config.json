@@ -99,7 +99,7 @@
 					"type": "string"
 				},
 				"apiKeyEnv": {
-					"description": "Env var holding the API key (default ROSETTA_API_KEY; OPENROUTER_API_KEY is always a fallback).",
+					"description": "Env var holding your model provider's API key (default OPENROUTER_API_KEY), e.g. OPENAI_API_KEY.",
 					"type": "string"
 				},
 				"temperature": { "type": "number", "minimum": 0, "default": 0.3 },

@@ -18,7 +18,7 @@ the same change. There's no bot, and CI runs on the translations like any other
 commit.
 
 ```bash
-export ROSETTA_API_KEY=sk-or-...
+export OPENROUTER_API_KEY=sk-or-...
 npx rosetta push
 git add -A && git commit -m "Add billing copy"
 ```
@@ -93,7 +93,7 @@ jobs:
           mode: pull-request
           token: ${{ steps.app.outputs.token }}
         env:
-          ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 ## 4. Commit to the branch
@@ -122,7 +122,7 @@ jobs:
           mode: commit
           token: ${{ secrets.I18N_TOKEN }}
         env:
-          ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 On a pull request, translations ride along with the English change. Check out the
@@ -144,7 +144,7 @@ jobs:
         with:
           mode: commit
         env:
-          ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 ## Action reference

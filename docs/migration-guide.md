@@ -47,7 +47,7 @@ pnpm add server-only
 ```
 
 Mode A reads its settings from `.rosetta/config.json` and the key from
-`ROSETTA_API_KEY` (or `OPENROUTER_API_KEY`); see [Mode A](#4-mode-a--build-time-catalogs).
+`OPENROUTER_API_KEY` (or the variable named by `engine.apiKeyEnv`); see [Mode A](#4-mode-a--build-time-catalogs).
 
 Environment for Modes B/C (server only; never expose it to the client):
 

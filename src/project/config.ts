@@ -311,8 +311,9 @@ function readReference(project: Project, value: string): string | undefined {
 /**
  * Build `Rosetta` constructor options from the project's `engine`, reading
  * brand-voice and glossary files and applying env overrides
- * (`ROSETTA_MODEL`, `ROSETTA_BASE_URL`). The API key is resolved from
- * `engine.apiKeyEnv` (default `ROSETTA_API_KEY`), then `OPENROUTER_API_KEY`.
+ * (`ROSETTA_MODEL`, `ROSETTA_BASE_URL`). The API key is your model
+ * provider's key, read from the env var named by `engine.apiKeyEnv`
+ * (default `OPENROUTER_API_KEY`). There is no Rosetta service or account.
  */
 export function resolveEngine(
 	project: Project,
@@ -351,9 +352,9 @@ export function resolveEngine(
 		glossary = engine.glossary;
 	}
 
-	const apiKeyEnv = engine.apiKeyEnv ?? "ROSETTA_API_KEY";
+	const apiKeyEnv = engine.apiKeyEnv ?? "OPENROUTER_API_KEY";
 	return {
-		apiKey: env[apiKeyEnv] || env.OPENROUTER_API_KEY || undefined,
+		apiKey: env[apiKeyEnv] || undefined,
 		apiKeyEnv,
 		model,
 		baseURL: env.ROSETTA_BASE_URL || engine.baseURL,

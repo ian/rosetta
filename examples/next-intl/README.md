@@ -21,7 +21,7 @@ Try it:
 npx rosetta status                   # everything up to date
 # edit messages/en.json: change "Create a note" to "New note", add a key
 npx rosetta status                   # es/ja: 2 to translate
-ROSETTA_API_KEY=sk-or-... npx rosetta push
+OPENROUTER_API_KEY=sk-or-... npx rosetta push
 npx rosetta check
 ```
 
