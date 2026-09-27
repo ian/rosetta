@@ -1,22 +1,33 @@
 name: Publish to npm
 
-# Publishes via npm Trusted Publishing (OIDC) — no NPM_TOKEN or OTP secrets.
+# Publishes whenever the `version` in package.json changes on main (e.g. after
+# `pnpm bump`). If that version isn't on npm yet, this workflow tests, builds,
+# publishes, then tags `v<version>` and creates the GitHub Release. Pushes that
+# don't change the version are a no-op, and so are re-runs of an
+# already-published version.
 #
-# Prerequisite: the `rosetta-i18n` package on npmjs.com must list this repo +
-# `npm-publish.yml` as a Trusted Publisher (package -> Settings -> Trusted
-# publishing), with "npm publish" allowed. The package must exist first, so
-# run one manual `npm publish` for the initial version.
+# Uses npm Trusted Publishing (OIDC), so no NPM_TOKEN or OTP secrets. The
+# `rosetta-i18n` package on npmjs.com lists this repo + `npm-publish.yml` as a
+# Trusted Publisher, so keep this filename. Requires npm >= 11.5.1 and
+# Node >= 22.14 (node-version: 24).
 #
-# Triggered by publishing a GitHub Release (see `pnpm bump` + `pnpm release`).
-# Requires npm >= 11.5.1 and Node >= 22.14 for OIDC auth (node-version: 24).
+# Prereleases (1.0.0-beta.1) publish under the `next` dist-tag and are marked
+# as prereleases on GitHub. Stable releases also move the `v<major>` tag that
+# `uses: ian/rosetta@v1` resolves to.
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
 
 permissions:
-  contents: write # move the v<major> tag for the GitHub Action
-  id-token: write
+  contents: write # push the version tag, move v<major>, create the release
+  id-token: write # npm trusted publishing
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -24,14 +35,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-
-      - name: Extract version from release tag
-        run: |
-          VERSION="${TAG_NAME#v}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Publishing version: $VERSION"
-        env:
-          TAG_NAME: ${{ github.event.release.tag_name }}
+        with:
+          fetch-depth: 0 # tags + history for release notes
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -40,7 +45,27 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
+      - name: Check whether this version is already published
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on npm; nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Publishing $NAME@$VERSION."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check npm supports OIDC trusted publishing
+        if: steps.version.outputs.publish == 'true'
         run: |
           NPM_VERSION=$(npm --version)
           echo "npm version: $NPM_VERSION"
@@ -51,41 +76,61 @@ jobs:
           fi
 
       - name: Setup pnpm
+        if: steps.version.outputs.publish == 'true'
         uses: pnpm/action-setup@v6
         with:
           run_install: false
 
       - name: Install dependencies
+        if: steps.version.outputs.publish == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Verify version matches tag
-        run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$PKG_VERSION" != "$VERSION" ]; then
-            echo "package.json version $PKG_VERSION does not match release tag $VERSION"
-            exit 1
-          fi
-
       - name: Test
+        if: steps.version.outputs.publish == 'true'
         run: pnpm test
 
       - name: Build
+        if: steps.version.outputs.publish == 'true'
         run: pnpm build
 
-      # Prereleases (1.0.0-beta.1) go to the "next" dist-tag so `latest` stays
-      # on the last stable version.
       - name: Publish
+        if: steps.version.outputs.publish == 'true'
+        env:
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
-          if [[ "$VERSION" == *-* ]]; then
+          if [ "$PRERELEASE" = "true" ]; then
             npm publish --access public --tag next
           else
             npm publish --access public
           fi
 
-      # `uses: ian/rosetta@v1` tracks the latest stable 1.x release.
+      - name: Tag and create the GitHub Release
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          TAG="v$VERSION"
+          PREV=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
+          NOTES=$(./scripts/release-notes "$PREV" "$TAG")
+          FLAGS=()
+          if [ "$PRERELEASE" = "true" ]; then FLAGS+=(--prerelease); fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+          else
+            gh release create "$TAG" --title "$TAG" --notes "$NOTES" ${FLAGS[@]+"${FLAGS[@]}"}
+          fi
+
       - name: Move major tag for the GitHub Action
-        if: ${{ !contains(env.VERSION, '-') }}
+        if: steps.version.outputs.publish == 'true' && steps.version.outputs.prerelease == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           MAJOR="v${VERSION%%.*}"
-          git tag -f "$MAJOR" "${{ github.event.release.tag_name }}^{commit}"
+          git tag -f "$MAJOR" "$GITHUB_SHA"
           git push -f origin "refs/tags/$MAJOR"
