@@ -31,7 +31,7 @@ Record this as a short table; it determines the mode.
 
 | Mode | Use for | Entrypoint |
 | --- | --- | --- |
-| **A. Build-time catalogs** | Static UI strings in a JSON catalog | `rosetta-i18n translate-catalog` CLI |
+| **A. Build-time catalogs** | Static UI strings in JSON/JSONC catalogs | `rosetta` CLI (`.rosetta/config.json`) |
 | **B. Server content** | DB/CMS copy translated on mutation, stored + read at render | `Rosetta` class + your datastore |
 | **C. On-demand server** | Per-request dynamic copy, RSC, route handlers | `rosetta-i18n/next` `cachedTranslate` |
 
@@ -41,12 +41,15 @@ anything generated at request time → C.
 ## 3. Install & configure
 
 ```bash
-pnpm add rosetta-i18n
+pnpm add rosetta-i18n          # Modes B/C (runtime); use `pnpm add -D` if you only need Mode A
 # only if you call it from a module that must never be bundled client-side:
 pnpm add server-only
 ```
 
-Environment (server only — never expose to the client):
+Mode A reads its settings from `.rosetta/config.json` and the key from
+`ROSETTA_API_KEY` (or `OPENROUTER_API_KEY`); see [Mode A](#4-mode-a--build-time-catalogs).
+
+Environment for Modes B/C (server only; never expose it to the client):
 
 | Variable | Required | Default |
 | --- | --- | --- |
@@ -80,20 +83,22 @@ export const rosetta = new Rosetta({
 
 ## 4. Mode A — build-time catalogs
 
-Best for static UI strings. No LLM in the request path.
+Best for static UI strings. There's no LLM call in the request path.
 
-1. Identify the source catalog (usually `messages/en.json`).
-2. Add a script:
+1. Create the config. `init` detects source files like `messages/en.json` and infers
+   targets from sibling files:
 
-   ```json
-   {
-     "scripts": {
-       "i18n:translate": "rosetta-i18n translate-catalog messages/en.json --merge --target es --target pt-BR --context \"<app> UI catalog\""
-     }
-   }
+   ```bash
+   npx rosetta init                     # or: --pattern messages/en.json --target es,pt-BR
+   npx rosetta init --from-lingo        # if the app used Lingo.dev
    ```
 
-3. Run it once and commit the generated `<target>.json` files.
+2. Fill in `engine` in `.rosetta/config.json`: `model`, a per-locale `brandVoice`,
+   `rules`, and a `glossary` (see [§7](#7-brand-voice--glossary)). Add a `context` to
+   each file entry ("<app> web UI").
+3. Run `npx rosetta push`. Existing translations are **adopted** (not retranslated);
+   missing, changed, or broken strings are translated. Commit `.rosetta/` together
+   with the locale files.
 4. Wire the runtime loader (e.g. next-intl):
 
    ```ts
@@ -103,12 +108,19 @@ Best for static UI strings. No LLM in the request path.
    }));
    ```
 
-5. In CI, run with `--merge` and fail on a dirty diff (or commit it back) so new
-   source keys are always translated and reviewed.
-6. Review diffs. Add a glossary for recurring brand terms.
+5. Add `rosetta check` to CI. It needs no API key and fails when anything is stale or
+   broken. Then choose how translations land (locally, a PR bot, or commit-on-merge);
+   see [`delivery.md`](./delivery.md).
+6. Review diffs. Use `lockedKeys` for values that must stay identical (URLs, prices),
+   `preservedKeys` for human-reviewed copy, and `ignoredKeys` for internal strings.
 
-`--merge` only translates keys missing from the target file, so routine runs cost
-one request per batch of new keys, not a full re-translation.
+Routine runs only send new or **changed** source strings to the model, since the
+lockfile tracks what each translation was made from. Use `push --key <path>` to
+redo specific strings and `push --force` after changing the model or glossary.
+
+Content that lives in code (TypeScript objects, CMS exports) should be exported to
+a JSON file first (e.g. a small `scripts/export-en.ts` that writes
+`content.en.json`), then listed in `files`.
 
 ## 5. Mode B — database / CMS content
 
@@ -132,12 +144,12 @@ reference pattern used by BRG.
      if (Object.keys(data).length === 0) return;
      try {
        for (const target of TARGET_LOCALES) {
-         const translated = await rosetta.translate(data, {
+         const { translations } = await rosetta.translateEntries(data, {
            source: "en",
            target,
            context: "<entity> listing",
          });
-         // upsert only successfully translated keys
+         // upsert only the keys in `translations` (validated); log `failures`
        }
      } catch (error) {
        console.error("[i18n] translation failed", error); // never rethrow
@@ -182,18 +194,24 @@ has zero request-path latency.
 
 ## 8. Failure & fallback semantics
 
-- `rosetta.translate(data)` is **non-throwing at the batch level**: failed
-  batches are logged and skipped, and the result contains only successful keys.
-  Callers must fall back to the source locale for missing keys.
+- `rosetta.translate(data)` validates every value (placeholders, ICU, tags) and
+  retries failing keys. It **throws `RosettaValidationError`** if any key still
+  fails. The error carries `.failures` and the successful `.partial` result. Pass
+  `onBatchError: "skip"` to get only the successful keys back instead.
+- `rosetta.translateEntries(data)` never throws for per-key problems; it returns
+  `{ translations, failures, usage }`. This is the easiest shape for Mode B wrappers.
 - `rosetta.translateText(text)` **throws** on a non-OK response.
+- Mode A (`rosetta push`) never writes a locale file unless every one of its keys
+  succeeded.
 - Never let a translation failure break a user mutation or a page render.
 
 ## 9. Verification
 
 - Unit: mock `fetch` and assert batching, retries, and partial-failure behavior
   for the app's wrapper.
-- E2E (no API key needed): run the CLI against a local OpenAI-compatible mock and
-  assert the output files, including `--merge` only sending new keys.
+- E2E (no API key needed): `rosetta check` in CI; for wrappers, run against a local
+  OpenAI-compatible mock (or inject a `translator` into `push()`) and assert the
+  output files, including that only new or changed keys are sent.
 - Bundle check: grep the client build for the API key / `rosetta-i18n` imports to
   confirm it is server-only.
 - `typecheck`, `lint`, `test`, `build` all green.
@@ -223,7 +241,7 @@ has zero request-path latency.
 - [ ] Translation wired at the right lifecycle point (build / mutation / render)
 - [ ] Source-locale fallback verified
 - [ ] Failure is non-blocking for user paths
-- [ ] Unit + e2e tests added
+- [ ] `rosetta check` in CI (Mode A); unit + e2e tests added
 - [ ] Client bundle contains no key and no `rosetta-i18n` import
 - [ ] Backfill run (Mode B) ordered by traffic
 - [ ] Old engine removed; unused deps pruned

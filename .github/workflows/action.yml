@@ -1,0 +1,94 @@
+name: Action
+
+# End-to-end test of the composite action (action.yml) against the packed
+# build, on a throwaway fixture repo with a local bare remote. No API key:
+# the fixture's existing translations are adopted, which still produces a
+# lockfile commit to exercise the commit path.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Pack and create fixture repo
+        id: fixture
+        run: |
+          pnpm pack --pack-destination "$RUNNER_TEMP"
+          echo "tarball=$(ls "$RUNNER_TEMP"/rosetta-i18n-*.tgz)" >> "$GITHUB_OUTPUT"
+          fixture="$RUNNER_TEMP/fixture"
+          git init --quiet --bare -b main "$RUNNER_TEMP/remote.git"
+          git clone --quiet "$RUNNER_TEMP/remote.git" "$fixture"
+          cd "$fixture"
+          git checkout --quiet -b main
+          git config user.name ci && git config user.email ci@example.com
+          mkdir -p .rosetta messages
+          cat > .rosetta/config.json <<'EOF'
+          {
+            "sourceLocale": "en",
+            "targetLocales": ["es"],
+            "files": [{ "pattern": "messages/en.json" }],
+            "engine": { "model": "unused/model" }
+          }
+          EOF
+          echo '{"hello":"Hello {name}"}' > messages/en.json
+          echo '{"hello":"Hola {name}","stale":"x"}' > messages/es.json
+          git add . && git commit --quiet -m init && git push --quiet origin main
+          echo "dir=$fixture" >> "$GITHUB_OUTPUT"
+
+      - name: check (expect stale before the first push)
+        id: stale
+        continue-on-error: true
+        uses: ./
+        with:
+          mode: check
+          working-directory: ${{ steps.fixture.outputs.dir }}
+          version: ${{ steps.fixture.outputs.tarball }}
+          node-version: ""
+
+      - name: commit (adopt + prune, no model)
+        id: commit
+        uses: ./
+        with:
+          mode: commit
+          working-directory: ${{ steps.fixture.outputs.dir }}
+          version: ${{ steps.fixture.outputs.tarball }}
+          node-version: ""
+
+      - name: check (expect clean)
+        uses: ./
+        with:
+          mode: check
+          working-directory: ${{ steps.fixture.outputs.dir }}
+          version: ${{ steps.fixture.outputs.tarball }}
+          node-version: ""
+
+      - name: Verify
+        env:
+          STALE_OUTCOME: ${{ steps.stale.outcome }}
+          CHANGED: ${{ steps.commit.outputs.changed }}
+          SHA: ${{ steps.commit.outputs.commit-sha }}
+        run: |
+          set -x
+          test "$STALE_OUTCOME" = failure
+          test "$CHANGED" = true
+          cd "$RUNNER_TEMP/remote.git"
+          test "$(git rev-parse main)" = "$SHA"
+          git show main:.rosetta/lock.json | grep -q '"hello"'
+          test "$(git show main:messages/es.json | tr -d ' \n')" = '{"hello":"Hola{name}"}'

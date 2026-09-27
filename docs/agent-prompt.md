@@ -18,7 +18,7 @@ stop at a local diff.
   https://github.com/ian/rosetta/blob/main/docs/migration-guide.md).
 - The package: https://www.npmjs.com/package/rosetta-i18n — entrypoints
   `rosetta-i18n` (engine), `rosetta-i18n/next` (server helpers), and the
-  `rosetta-i18n` CLI (`translate-catalog`).
+  `rosetta` CLI (`init`, `push`, `check`, `status`; config in `.rosetta/config.json`).
 - A reference implementation: `bestrestaurantsguide/brg` PR #943 and
   `apps/api/src/lib/translation.ts`.
 
@@ -85,14 +85,19 @@ export const rosetta = getRosetta();
 If the app is not Next.js, construct `new Rosetta({ ... })` from
 `rosetta-i18n` directly.
 
-**Mode A — catalogs.** Add an `i18n:translate` script using the CLI with
-`--merge` and the app's real target list and context. Generate the locale files,
-commit them, and wire the existing runtime loader to read them. Do not call the
-model at request time.
+**Mode A — catalogs.** Run `npx rosetta init` (or `init --from-lingo`, or
+`init --pattern <file> --target <locales>`), then fill in `engine` in
+`.rosetta/config.json` (model, brand voice, rules, glossary) and a `context` per
+file. Run `npx rosetta push`: existing translations are adopted and only missing,
+changed, or broken strings are translated. Commit `.rosetta/` with the locale files,
+wire the runtime loader, add `rosetta check` to CI, and pick a delivery workflow
+from `docs/delivery.md`. Export content that lives in code to JSON first. Do not
+call the model at request time.
 
 **Mode B — server content.** Add storage keyed by `(entityId, field, locale)`.
-Write a non-throwing `translateAndStore` wrapper (English/source is the source of
-truth; only successfully translated keys are persisted). Queue it off the request
+Write a non-throwing `translateAndStore` wrapper around
+`rosetta.translateEntries()`, which returns `{ translations, failures }` without
+throwing (English/source is the source of truth; persist only `translations`). Queue it off the request
 path on mutations. Fall back to the source locale at read time. Add a backfill
 script ordered by traffic. Re-translate on edit via the existing change/webhook
 path.
@@ -113,9 +118,9 @@ recurring terms. Keep them in the repo.
 - `pnpm test` (or the repo's test command), including any new tests.
 - Add a unit test for the wrapper with a mocked `fetch` (batching, retries,
   partial failure).
-- Prefer an e2e check that needs no API key: run the CLI against a local
-  OpenAI-compatible mock and assert the output files, and that `--merge` only
-  sends new keys.
+- Prefer checks that need no API key: `npx rosetta check` must pass, and
+  `npx rosetta status --json` must show nothing pending. For Mode B wrappers, run
+  against a local OpenAI-compatible mock and assert the stored rows.
 - Confirm the client bundle has no API key and no `rosetta-i18n` import.
 - Run the app's build.
 

@@ -1,0 +1,138 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://unpkg.com/rosetta-i18n@1/schema/config.json",
+	"title": "Rosetta config (.rosetta/config.json)",
+	"description": "Configuration for rosetta-i18n, a free, open-source, self-run localization CLI. See https://github.com/ian/rosetta.",
+	"type": "object",
+	"required": ["sourceLocale", "targetLocales", "files"],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": { "type": "string" },
+		"sourceLocale": {
+			"description": "Locale of the source files (e.g. \"en\"). Source files are read, never written.",
+			"type": "string",
+			"pattern": "^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$"
+		},
+		"targetLocales": {
+			"description": "Locales to translate into.",
+			"type": "array",
+			"minItems": 1,
+			"uniqueItems": true,
+			"items": {
+				"type": "string",
+				"pattern": "^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$"
+			}
+		},
+		"files": {
+			"description": "Source files to translate.",
+			"type": "array",
+			"minItems": 1,
+			"items": { "$ref": "#/definitions/file" }
+		},
+		"engine": { "$ref": "#/definitions/engine" },
+		"orgId": {
+			"description": "Lingo.dev setting — ignored by Rosetta.",
+			"deprecated": true
+		},
+		"engineId": {
+			"description": "Lingo.dev setting — ignored by Rosetta. Configure `engine` instead.",
+			"deprecated": true
+		},
+		"github": {
+			"description": "Lingo.dev setting — ignored by Rosetta.",
+			"deprecated": true
+		},
+		"version": {
+			"description": "Lingo.dev setting — ignored by Rosetta.",
+			"deprecated": true
+		}
+	},
+	"definitions": {
+		"keyPatterns": {
+			"type": "array",
+			"items": { "type": "string" },
+			"description": "Dotted key paths or globs. `auth` matches auth and everything under it; `*` matches one segment; `**` any depth (e.g. `**.href`)."
+		},
+		"file": {
+			"type": "object",
+			"required": ["pattern"],
+			"additionalProperties": false,
+			"properties": {
+				"pattern": {
+					"description": "Source file path or glob, relative to the project root, containing the source locale (messages/en.json, locales/en/**/*.json, pages.en.json).",
+					"type": "string",
+					"minLength": 1
+				},
+				"format": {
+					"description": "Defaults to the file extension.",
+					"enum": ["json", "jsonc"]
+				},
+				"context": {
+					"description": "Context sent with every request for this file.",
+					"type": "string"
+				},
+				"lockedKeys": {
+					"$ref": "#/definitions/keyPatterns",
+					"description": "Copied from the source untranslated and kept in sync."
+				},
+				"preservedKeys": {
+					"$ref": "#/definitions/keyPatterns",
+					"description": "Translated once, then never overwritten."
+				},
+				"ignoredKeys": {
+					"$ref": "#/definitions/keyPatterns",
+					"description": "Omitted from target files."
+				}
+			}
+		},
+		"engine": {
+			"description": "Local translation engine: model, endpoint, and prompt settings. Required for `rosetta push`.",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"model": {
+					"description": "Model id, e.g. anthropic/claude-sonnet-4.5. Overridden by ROSETTA_MODEL.",
+					"type": "string"
+				},
+				"baseURL": {
+					"description": "OpenAI-compatible endpoint (default https://openrouter.ai/api/v1). Overridden by ROSETTA_BASE_URL.",
+					"type": "string"
+				},
+				"apiKeyEnv": {
+					"description": "Env var holding the API key (default ROSETTA_API_KEY; OPENROUTER_API_KEY is always a fallback).",
+					"type": "string"
+				},
+				"temperature": { "type": "number", "minimum": 0, "default": 0.3 },
+				"brandVoice": {
+					"description": "Locale (or \"*\" fallback) → brand-voice text, or a path to a .md/.txt file relative to .rosetta/.",
+					"type": "object",
+					"additionalProperties": { "type": "string" }
+				},
+				"rules": {
+					"description": "Linguistic rules appended to every prompt.",
+					"oneOf": [
+						{ "type": "string" },
+						{ "type": "array", "items": { "type": "string" } }
+					]
+				},
+				"glossary": {
+					"description": "Inline glossary ({ locale: { term: rendering } }, with \"*\" for never-translate terms) or a path to a JSON/JSONC file relative to .rosetta/.",
+					"oneOf": [
+						{ "type": "string" },
+						{
+							"type": "object",
+							"additionalProperties": {
+								"type": "object",
+								"additionalProperties": { "type": "string" }
+							}
+						}
+					]
+				},
+				"batchSize": { "type": "integer", "minimum": 1, "default": 25 },
+				"concurrency": { "type": "integer", "minimum": 1, "default": 4 },
+				"retries": { "type": "integer", "minimum": 0, "default": 2 },
+				"timeoutMs": { "type": "integer", "minimum": 1, "default": 120000 }
+			}
+		}
+	}
+}

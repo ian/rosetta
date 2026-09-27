@@ -1,0 +1,16 @@
+{
+  "name": "rosetta-example-next-intl",
+  "private": true,
+  "scripts": {
+    "i18n:push": "rosetta push",
+    "i18n:check": "rosetta check",
+    "i18n:status": "rosetta status"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "next-intl": "^4.0.0"
+  },
+  "devDependencies": {
+    "rosetta-i18n": "^1.0.0"
+  }
+}

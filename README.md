@@ -280,34 +280,48 @@ hung requests.
 
 ## Getting translations into your repo
 
-Rosetta doesn't prescribe how translations land — pick what fits your team:
+Rosetta doesn't prescribe how translations land. Pick what fits your team:
 
 - **Locally or with a coding agent:** run `rosetta push` and commit the result with
   the English change. Agents can use `rosetta status --json` and `rosetta push --json`.
 - **CI gate:** run `rosetta check` on pull requests. It needs no API key, so forks
   stay green.
-- **Automated:** run `rosetta push` in CI after merges and commit the output or open a
-  pull request.
+- **Pull request bot:** after merges, translate what changed and open or update one
+  rolling PR.
+- **Commit to the branch:** translate and commit straight to `main` (or to the PR
+  branch).
 
-A check-only workflow:
+The GitHub Action covers the last three:
 
 ```yaml
-# .github/workflows/i18n-check.yml
-name: i18n
-on: pull_request
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: npx --yes rosetta-i18n@1 check
+# Check on every PR (no secret needed)
+- uses: ian/rosetta@v1
+  with:
+    mode: check
+
+# After merges to main: translate + create/update a rolling PR
+- uses: ian/rosetta@v1
+  with:
+    mode: pull-request            # or: commit
+    token: ${{ steps.app.outputs.token }}
+  env:
+    ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
-A GitHub Action with `pull-request`, `commit`, and `check` modes is in progress.
-Note that GitHub doesn't run other workflows on commits or PRs made with the default
-`GITHUB_TOKEN`; use a GitHub App token or PAT if you need CI to run on bot commits.
+It stages only translation files and the lockfile. It lands the locales that
+succeeded even when others fail, lists failing keys in the PR body and job summary,
+and exposes `changed`, `pr-url`, and `commit-sha` outputs.
+
+GitHub doesn't run other workflows on commits or PRs made with the default
+`GITHUB_TOKEN`. Use a GitHub App token or PAT if CI must run on the bot's changes.
+[`docs/delivery.md`](docs/delivery.md) has complete workflows for each option, the
+full Action reference, and the token details. [`examples/next-intl`](examples/next-intl)
+is a working setup.
+
+> Rosetta writes target files as 2-space JSON with a trailing newline, mirroring the
+> source's key order. If a formatter in your repo rewrites them differently, exclude
+> the generated locale files from it. Otherwise the formatter and `rosetta push` will
+> keep producing formatting-only diffs. `check` compares values, so it isn't affected.
 
 ## Coming from Lingo.dev
 
@@ -317,6 +331,8 @@ hosted engine does runs locally from your config.
 ```bash
 npx rosetta init --from-lingo   # imports .lingo/config.json or legacy i18n.json
 ```
+
+The step-by-step guide is [`docs/migrating-from-lingo.md`](docs/migrating-from-lingo.md).
 
 | Lingo.dev | Rosetta |
 | --- | --- |
@@ -531,6 +547,8 @@ never writes partial files.
 
 - [`docs/migration-guide.md`](docs/migration-guide.md): a playbook for switching an app
   from another translation stack (inventory → modes → verification).
+- [`docs/migrating-from-lingo.md`](docs/migrating-from-lingo.md): the Lingo.dev-specific
+  path (config import, engine, CI).
 - [`docs/agent-prompt.md`](docs/agent-prompt.md): a ready-to-run agent prompt that
   executes the migration.
 

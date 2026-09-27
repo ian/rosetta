@@ -322,28 +322,57 @@ If no key is found, `push` exits with code 2 and a clear message. Workflows that
 
 ## 13. GitHub Action (`action.yml` at the repo root)
 
-A composite action, used as `uses: ian/rosetta@v1`.
+A composite action, used as `uses: ian/rosetta@v1`. The logic lives in
+`action/run.sh` (bash) and `action/summary.mjs`.
 
 | Input | Default | Meaning |
 |---|---|---|
 | `mode` | `pull-request` | `pull-request`, `commit` or `check`. |
 | `token` | `${{ github.token }}` | Used to push and to open PRs. |
 | `branch` | `rosetta/translations` | The PR branch, in `pull-request` mode. |
+| `base` | the triggering branch | The PR base branch, in `pull-request` mode. |
 | `commit-message` | `chore(i18n): update translations` | |
-| `pr-title` / `pr-body` | defaults | The PR body includes the `--json` summary. |
+| `pr-title` / `pr-body` | defaults | `pr-body` is placed above the generated summary. |
 | `args` | `""` | Extra arguments for `rosetta push`. |
-| `working-directory` | `.` | |
-| `version` | the Action's own version | Which `rosetta-i18n` version to run. |
+| `working-directory` | `.` | The directory that contains `.rosetta/`. |
+| `version` | auto | The project's installed `rosetta` if present, otherwise `rosetta-i18n@<action major>`. Also accepts a path or tarball. |
+| `node-version` | `22` | Pass `""` to use the runner's own Node. |
 
-The Action's outputs are `changed` (a boolean), `pr-url` and `commit-sha`.
+The Action's outputs are `changed` (`"true"`/`"false"`), `pr-url` and `commit-sha`.
+
+Behaviour in all modes:
+
+- **What gets staged.** Only the target files `push` reported as written, plus
+  `.rosetta/lock.json`. Nothing else in the working tree is committed.
+- **Exit codes.**
+  - Push exit 2 (usage or config error): the step fails and nothing is committed.
+  - Push exit 1 (some locales failed): the locales that succeeded are still
+    committed, and the step exits 1.
+- **Token.** When `token` is set and `origin` points at GitHub, pushes use that
+  token rather than the credential `actions/checkout` persisted. That lets App
+  tokens and PATs trigger downstream workflows.
+- **Summary.** A job summary with per-locale counts and failures is written on
+  every run.
 
 What each mode does:
 
-- **`pull-request`** runs `push`. If anything changed, it commits to `branch`, resetting it onto the current commit on every run, force-pushes, and **creates or updates a single rolling PR**.
-- **`commit`** runs `push` and commits to the branch that triggered the workflow. If that branch has moved, it rebases and retries, up to 3 times.
+- **`pull-request`** runs `push`. If anything changed, it runs
+  `git checkout -B <branch>`, commits, force-pushes, and **creates or updates a
+  single open PR** from `<branch>` into `base` using `gh`.
+- **`commit`** runs `push` and commits to the currently checked-out branch.
+  - If the push is rejected, it fetches, rebases and retries, up to 3 times.
+  - It refuses a detached HEAD. For `pull_request` workflows, check out the PR
+    branch with `ref: ${{ github.head_ref }}`.
 - **`check`** runs `rosetta check`. No key is needed.
 
-The docs must be explicit that GitHub doesn't run other workflows on PRs or commits created with the default `GITHUB_TOKEN`. If you want CI to run on translation PRs, use a GitHub App token or a PAT. The docs will also include a "dispatch CI, then push" recipe for teams that can't use either.
+The docs must say plainly that GitHub doesn't run other workflows on PRs or commits made with the default `GITHUB_TOKEN`. The recommended workaround is a GitHub App token; `docs/delivery.md` also describes the "dispatch CI, then push" fallback.
+
+Tests:
+
+- `src/action.test.ts` runs `run.sh` against a real git repo with a local bare
+  remote, a fake `rosetta` and a fake `gh`.
+- `.github/workflows/action.yml` runs the real composite action (`uses: ./`) against
+  the packed build on a fixture repo.
 
 ## 14. Documentation
 
