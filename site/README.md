@@ -32,6 +32,12 @@ Git**, pick `ian/rosetta`, and use these build settings:
 
 Every push to `main` deploys production, and every PR gets a preview URL.
 
+Then add the custom domain: **Pages project → Custom domains → Set up a custom domain →
+`rosetta.tools`**. If the domain's DNS is on Cloudflare (for example, bought through
+Cloudflare Registrar), the record is created for you. Otherwise, add the CNAME it
+shows at your DNS provider. `astro.config.mjs` sets `site: "https://rosetta.tools"`
+for canonical and Open Graph URLs.
+
 The build reads `../README.md` and `../package.json`. Cloudflare checks out the
 whole repo, so those resolve even with `site` as the root directory.
 
