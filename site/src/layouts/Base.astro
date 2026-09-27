@@ -1,0 +1,73 @@
+---
+interface Props {
+	title: string;
+	description: string;
+}
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--bg: #ffffff;
+		--fg: #111827;
+		--muted: #6b7280;
+		--line: #e5e7eb;
+		--card: #f9fafb;
+		--accent: #d97706;
+		--code-bg: #0f172a;
+		--code-fg: #e2e8f0;
+		color-scheme: light dark;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #0b0f17;
+			--fg: #e5e7eb;
+			--muted: #9ca3af;
+			--line: #1f2937;
+			--card: #111827;
+			--accent: #f59e0b;
+			--code-bg: #020617;
+		}
+	}
+	* {
+		box-sizing: border-box;
+	}
+	html {
+		font-family:
+			ui-sans-serif,
+			system-ui,
+			-apple-system,
+			"Segoe UI",
+			sans-serif;
+		background: var(--bg);
+		color: var(--fg);
+		line-height: 1.6;
+	}
+	body {
+		margin: 0;
+	}
+	a {
+		color: inherit;
+	}
+	code,
+	pre {
+		font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+		font-size: 0.9em;
+	}
+</style>

@@ -1,0 +1,366 @@
+---
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import Base from "../layouts/Base.astro";
+
+// Single-source content from the repo so the site can't drift from the docs.
+// The build runs from site/, so the repo root is one level up.
+const repoRoot = join(process.cwd(), "..");
+const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as {
+	version: string;
+};
+const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
+const agentSection = readme.split("## Set up with your AI agent")[1] ?? "";
+const agentPrompt = /```text\n([\s\S]*?)\n```/.exec(agentSection)?.[1]?.trim();
+if (!agentPrompt) {
+	throw new Error("Couldn't find the agent prompt in README.md (## Set up with your AI agent).");
+}
+
+const repo = "https://github.com/ian/rosetta";
+const skillUrl = "https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md";
+const install = pkg.version.includes("-") ? "rosetta-i18n@next" : "rosetta-i18n";
+
+const title = "Rosetta: free, open-source localization you run yourself";
+const description =
+	"A DIY Lingo.dev. Edit your source strings, run rosetta push, and every locale gets the new and changed strings, translated by your own LLM key and validated before anything is written.";
+
+const features = [
+	{
+		title: "Only changed strings cost tokens",
+		body: "A lockfile records the source text behind every translation, so edits are retranslated automatically and nothing else is sent.",
+	},
+	{
+		title: "Existing translations adopted free",
+		body: "The first push records what you already have without calling a model. Broken ones get flagged and fixed.",
+	},
+	{
+		title: "Validated, never partial",
+		body: "Placeholders, ICU plurals, and <tags> must survive. A locale with a failing key isn't written; the rest still land.",
+	},
+	{
+		title: "Your repo, your key",
+		body: "Config, lockfile, brand voice, and glossary are files in .rosetta/. Any OpenAI-compatible model: OpenRouter, OpenAI, Ollama.",
+	},
+];
+
+const comparison = [
+	["Where it runs", "Your machine or CI runner", "Hosted engine"],
+	["Account", "None", "Required"],
+	["Credential", "Your model provider's key", "LINGO_API_KEY"],
+	["Brand voice, glossary, rules", "Files in your repo", "Platform dashboard"],
+	["Change tracking", "Per string", "Per file"],
+];
+---
+
+<Base title={title} description={description}>
+	<header class="wrap nav">
+		<a class="logo" href="/"><img src="/favicon.svg" alt="" width="24" height="24" /> Rosetta</a>
+		<nav>
+			<a href={`${repo}#readme`}>Docs</a>
+			<a href={repo}>GitHub</a>
+			<a href="https://www.npmjs.com/package/rosetta-i18n">npm</a>
+		</nav>
+	</header>
+
+	<main>
+		<section class="wrap hero">
+			<p class="eyebrow">v{pkg.version} · MIT · no account</p>
+			<h1>Localization you run yourself.</h1>
+			<p class="lede">
+				A free, open-source Lingo.dev. Edit your source strings, run <code>rosetta push</code>, and every
+				locale gets the new and changed strings, translated with your own LLM key and validated before
+				anything is written.
+			</p>
+			<div class="ctas">
+				<a class="btn primary" href="#agent">Set up with your AI agent</a>
+				<a class="btn" href={`${repo}#quick-start`}>Quick start</a>
+			</div>
+			<pre class="terminal"><code><span class="c"># once</span>
+npm install -D {install}
+npx rosetta init
+
+<span class="c"># every time you change copy</span>
+npx rosetta push     <span class="c"># translate what changed, write files + .rosetta/lock.json</span>
+npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key needed)</span></code></pre>
+		</section>
+
+		<section class="wrap" id="agent">
+			<h2>Set up with your AI agent</h2>
+			<p class="muted">
+				Paste this into Claude Code, Cursor, Codex, or opencode from your project root. It finds your locale
+				files, adopts your existing translations, reports the broken ones, wires up CI, and opens one PR.
+			</p>
+			<div class="prompt">
+				<button type="button" class="copy" data-copy-target="agent-prompt">Copy</button>
+				<pre id="agent-prompt">{agentPrompt}</pre>
+			</div>
+			<p class="muted small">
+				Also give your agent everyday Rosetta know-how with the <a href={skillUrl}>skill</a>, or use the{" "}
+				<a href={`${repo}/blob/main/docs/agent-prompt.md`}>self-contained prompt</a> for agents that can't
+				fetch URLs.
+			</p>
+		</section>
+
+		<section class="wrap">
+			<h2>How it works</h2>
+			<div class="grid">
+				{
+					features.map((feature) => (
+						<div class="card">
+							<h3>{feature.title}</h3>
+							<p>{feature.body}</p>
+						</div>
+					))
+				}
+			</div>
+		</section>
+
+		<section class="wrap">
+			<h2>Rosetta vs. Lingo.dev</h2>
+			<p class="muted">
+				Same layout and vocabulary (<code>.rosetta/config.json</code>, <code>lockedKeys</code>,{" "}
+				<code>push --key</code>), so moving over is <code>rosetta init --from-lingo</code>.
+			</p>
+			<div class="table-wrap">
+			<table>
+				<thead>
+					<tr><th></th><th>Rosetta</th><th>Lingo.dev</th></tr>
+				</thead>
+				<tbody>
+					{
+						comparison.map(([label, ours, theirs]) => (
+							<tr>
+								<th>{label}</th>
+								<td>{ours}</td>
+								<td>{theirs}</td>
+							</tr>
+						))
+					}
+				</tbody>
+			</table>
+			</div>
+		</section>
+	</main>
+
+	<footer class="wrap footer">
+		<span>MIT © Ian Hunter</span>
+		<a href={`${repo}/blob/main/docs/delivery.md`}>CI &amp; delivery</a>
+		<a href={`${repo}/blob/main/docs/migrating-from-lingo.md`}>Migrating from Lingo.dev</a>
+		<a href={`${repo}/blob/main/docs/spec-v1.md`}>Spec</a>
+	</footer>
+</Base>
+
+<script>
+	for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy-target]")) {
+		button.addEventListener("click", async () => {
+			const target = document.getElementById(button.dataset.copyTarget ?? "");
+			if (!target) return;
+			await navigator.clipboard.writeText(target.textContent ?? "");
+			button.textContent = "Copied";
+			setTimeout(() => {
+				button.textContent = "Copy";
+			}, 1500);
+		});
+	}
+</script>
+
+<style>
+	.wrap {
+		max-width: 64rem;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+	.nav {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-top: 1.25rem;
+		padding-bottom: 1.25rem;
+	}
+	.logo {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	nav a {
+		margin-left: 1.25rem;
+		color: var(--muted);
+		text-decoration: none;
+	}
+	nav a:hover {
+		color: var(--fg);
+	}
+	section {
+		padding-top: 3.5rem;
+	}
+	.hero {
+		padding-top: 4rem;
+	}
+	.eyebrow {
+		color: var(--accent);
+		font-weight: 600;
+		font-size: 0.9rem;
+		margin: 0;
+	}
+	h1 {
+		font-size: clamp(2.25rem, 5vw, 3.5rem);
+		line-height: 1.1;
+		margin: 0.5rem 0 1rem;
+		letter-spacing: -0.02em;
+	}
+	h2 {
+		font-size: 1.6rem;
+		margin: 0 0 0.75rem;
+	}
+	h3 {
+		font-size: 1.05rem;
+		margin: 0 0 0.4rem;
+	}
+	.lede {
+		font-size: 1.2rem;
+		max-width: 44rem;
+		color: var(--muted);
+		margin: 0;
+	}
+	.muted {
+		color: var(--muted);
+		max-width: 46rem;
+	}
+	.small {
+		font-size: 0.9rem;
+	}
+	.ctas {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin: 2rem 0;
+	}
+	.hero {
+		padding-bottom: 1rem;
+	}
+	nav {
+		white-space: nowrap;
+	}
+	@media (max-width: 480px) {
+		nav a {
+			margin-left: 0.9rem;
+		}
+		.terminal,
+		.prompt {
+			padding: 1rem;
+			font-size: 0.85rem;
+		}
+		tbody th {
+			white-space: normal;
+		}
+	}
+	.btn {
+		display: inline-block;
+		padding: 0.65rem 1.1rem;
+		border-radius: 0.5rem;
+		border: 1px solid var(--line);
+		text-decoration: none;
+		font-weight: 600;
+	}
+	.btn.primary {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #111827;
+	}
+	pre {
+		margin: 0;
+		overflow-x: auto;
+	}
+	.terminal pre,
+	pre.terminal {
+		white-space: pre;
+	}
+	.prompt pre {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+	.table-wrap {
+		overflow-x: auto;
+	}
+	.terminal,
+	.prompt {
+		background: var(--code-bg);
+		color: var(--code-fg);
+		border-radius: 0.75rem;
+		padding: 1.25rem 1.5rem;
+	}
+	.terminal .c {
+		color: #64748b;
+	}
+	.prompt {
+		position: relative;
+		margin: 1.25rem 0 0.75rem;
+	}
+	.prompt pre {
+		padding-right: 4.5rem;
+		line-height: 1.55;
+	}
+	.copy {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
+		background: #1e293b;
+		color: var(--code-fg);
+		border: 1px solid #334155;
+		border-radius: 0.4rem;
+		padding: 0.3rem 0.75rem;
+		font: inherit;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+	.copy:hover {
+		background: #334155;
+	}
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+		gap: 1rem;
+	}
+	.card {
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-radius: 0.75rem;
+		padding: 1.25rem;
+	}
+	.card p {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.95rem;
+	}
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		margin-top: 1rem;
+		font-size: 0.95rem;
+	}
+	th,
+	td {
+		text-align: left;
+		padding: 0.6rem 0.75rem;
+		border-bottom: 1px solid var(--line);
+	}
+	thead th {
+		color: var(--muted);
+		font-weight: 600;
+	}
+	tbody th {
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.footer {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.25rem;
+		color: var(--muted);
+		font-size: 0.9rem;
+		padding-top: 4rem;
+		padding-bottom: 3rem;
+	}
+</style>

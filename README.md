@@ -614,6 +614,9 @@ Source lives in `src/`: the translation engine in `src/rosetta.ts`, validation i
 in `src/cli.ts`. `rollup` produces `dist/esm`; `tsc` emits declarations to
 `dist/types`.
 
+The website lives in `site/` (Astro, deployed to Cloudflare Pages); see
+[`site/README.md`](site/README.md).
+
 ## License
 
 MIT © Ian Hunter
