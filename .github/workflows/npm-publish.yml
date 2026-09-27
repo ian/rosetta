@@ -15,7 +15,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write # move the v<major> tag for the GitHub Action
   id-token: write
 
 jobs:
@@ -72,5 +72,20 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Prereleases (1.0.0-beta.1) go to the "next" dist-tag so `latest` stays
+      # on the last stable version.
       - name: Publish
-        run: npm publish --access public
+        run: |
+          if [[ "$VERSION" == *-* ]]; then
+            npm publish --access public --tag next
+          else
+            npm publish --access public
+          fi
+
+      # `uses: ian/rosetta@v1` tracks the latest stable 1.x release.
+      - name: Move major tag for the GitHub Action
+        if: ${{ !contains(env.VERSION, '-') }}
+        run: |
+          MAJOR="v${VERSION%%.*}"
+          git tag -f "$MAJOR" "${{ github.event.release.tag_name }}^{commit}"
+          git push -f origin "refs/tags/$MAJOR"

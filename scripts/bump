@@ -2,17 +2,22 @@
 set -euo pipefail
 
 # Bump the package version, commit, tag, and push.
-# Usage: pnpm bump [patch|minor|major]
+# Usage:
+#   pnpm bump [patch|minor|major]          # stable release
+#   pnpm bump [premajor|preminor|prepatch|prerelease]   # beta prerelease (-beta.N)
+#   pnpm bump 1.0.0-beta.1                  # explicit version
 
 VERSION_TYPE=${1:-patch}
 
-if [[ "$VERSION_TYPE" != "patch" && "$VERSION_TYPE" != "minor" && "$VERSION_TYPE" != "major" ]]; then
-	echo "Invalid version type. Use 'patch', 'minor', or 'major'."
-	exit 1
-fi
-
-# Bump package.json only — we create a single commit and tag below.
-npm version "$VERSION_TYPE" --no-git-tag-version
+case "$VERSION_TYPE" in
+	patch | minor | major) npm version "$VERSION_TYPE" --no-git-tag-version ;;
+	premajor | preminor | prepatch | prerelease) npm version "$VERSION_TYPE" --preid beta --no-git-tag-version ;;
+	[0-9]*.[0-9]*.[0-9]*) npm version "$VERSION_TYPE" --no-git-tag-version ;;
+	*)
+		echo "Invalid version type. Use patch|minor|major, premajor|preminor|prepatch|prerelease, or an explicit version."
+		exit 1
+		;;
+esac
 
 VERSION=$(node -p "require('./package.json').version")
 
