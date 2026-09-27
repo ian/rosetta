@@ -1,6 +1,9 @@
 ---
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import CopyButton from "../components/CopyButton.astro";
+import Terminal from "../components/Terminal.astro";
+import type { Line } from "../components/terminal";
 import Base from "../layouts/Base.astro";
 
 // Single-source content from the repo so the site can't drift from the docs.
@@ -20,35 +23,168 @@ const repo = "https://github.com/ian/rosetta";
 const skillUrl = "https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md";
 const install = pkg.version.includes("-") ? "rosetta-i18n@next" : "rosetta-i18n";
 
-const title = "Rosetta: free, open-source localization you run yourself";
+const title = "Rosetta: a free, open-source alternative to Lingo.dev";
 const description =
-	"A DIY Lingo.dev. Edit your source strings, run rosetta push, and every locale gets the new and changed strings, translated by your own LLM key and validated before anything is written.";
+	"Edit your source strings, run rosetta push, and every locale gets the new and changed strings, translated with your own LLM key and validated before anything is written. No account, no daily token cap, no platform fee.";
+
+// Hero demo. Output mirrors the real CLI's formatting.
+const demo: Line[] = [
+	{ kind: "out", tone: "dim", text: "# you edited 4 strings in messages/en.json" },
+	{ kind: "cmd", text: "npx rosetta push" },
+	{ kind: "out", tone: "ok", text: "✓ es     messages/es.json     4 translated · 1 removed" },
+	{ kind: "out", tone: "ok", text: "✓ fr     messages/fr.json     4 translated · 1 removed" },
+	{ kind: "out", tone: "ok", text: "✓ de     messages/de.json     4 translated · 1 removed" },
+	{ kind: "out", tone: "ok", text: "✓ ja     messages/ja.json     4 translated · 1 removed" },
+	{ kind: "out", tone: "ok", text: "✓ pt-BR  messages/pt-BR.json  4 translated · 1 removed" },
+	{ kind: "out", tone: "ok", text: "✓ zh-CN  messages/zh-CN.json  4 translated · 1 removed" },
+	{ kind: "out", tone: "dim", text: "6 requests · 5,412 input / 1,988 output tokens" },
+	{ kind: "cmd", text: "git diff --stat" },
+	{ kind: "out", text: " .rosetta/lock.json    | 30 +++++++-------" },
+	{ kind: "out", text: " messages/de.json      |  9 ++++----" },
+	{ kind: "out", text: " messages/en.json      |  9 ++++----" },
+	{ kind: "out", text: " messages/es.json      |  9 ++++----" },
+	{ kind: "out", text: " messages/fr.json      |  9 ++++----" },
+	{ kind: "out", text: " messages/ja.json      |  9 ++++----" },
+	{ kind: "out", text: " messages/pt-BR.json   |  9 ++++----" },
+	{ kind: "out", text: " messages/zh-CN.json   |  9 ++++----" },
+	{ kind: "out", text: " 8 files changed, 57 insertions(+), 36 deletions(-)" },
+	{ kind: "cmd", text: "git diff messages/ja.json" },
+	{ kind: "out", tone: "hunk", text: "@@ -18,9 +18,9 @@ \"Pricing\": {" },
+	{ kind: "out", tone: "del", text: '-    "cta": "無料で始める",' },
+	{ kind: "out", tone: "add", text: '+    "cta": "Proを14日間無料で試す",' },
+	{ kind: "out", tone: "del", text: '-    "trial": "{days}日間の無料トライアル",' },
+	{ kind: "out", tone: "add", text: '+    "trial": "{days}日間無料・カード登録不要",' },
+	{ kind: "cmd", text: 'git commit -am "Update pricing copy"' },
+	{ kind: "out", text: "[main 4c1e7a2] Update pricing copy" },
+	{ kind: "out", text: " 8 files changed, 57 insertions(+), 36 deletions(-)" },
+	{ kind: "cmd", text: "git push" },
+	{ kind: "out", tone: "dim", text: "To github.com:acme/web.git" },
+	{ kind: "out", tone: "dim", text: "   9b3d0f1..4c1e7a2  main -> main" },
+];
+
+const reasons = [
+	{
+		title: "No daily token cap",
+		body: "Rosetta sends requests straight to your model provider, so the only limits are your provider's. Translate a whole site in one run.",
+	},
+	{
+		title: "No platform fee, no subscription",
+		body: "There's no base price, no per-engine charge, and no markup per million tokens. You pay your LLM provider for the tokens you use, and nothing else.",
+	},
+	{
+		title: "Any model, your key",
+		body: "OpenRouter by default, or any OpenAI-compatible endpoint: OpenAI, a gateway, or Ollama on your own machine. Switch models with one line of config.",
+	},
+	{
+		title: "Everything lives in your repo",
+		body: "Config, lockfile, brand voice, and glossary are plain files in .rosetta/. Translations are reviewable diffs with git history, not rows in a dashboard.",
+	},
+	{
+		title: "Built for coding agents",
+		body: "--json on every command, stable exit codes, no prompts in CI, and a skill your agent can install. \"Add a German string for this\" just works.",
+	},
+	{
+		title: "Open source, MIT",
+		body: "Read it, fork it, run it anywhere. No account to create, nothing to cancel, and no vendor between you and your translations.",
+	},
+];
+
+const pricing = [
+	["Monthly base price", "$0", "$99", "$0"],
+	["Throughput", "100K tokens / day", "5M tokens / day", "Your provider's limits"],
+	["LLM tokens", "Passed through", "Passed through", "Paid to your provider"],
+	["Platform fee", "$2 / million tokens", "$2 / million tokens", "None"],
+	["Engines", "$0.50 / engine / month", "$0.50 / engine / month", "Free (it's a config file)"],
+	["Bring your own model key", "Enterprise only", "Enterprise only", "Always"],
+	["Where your config lives", "Their platform", "Their platform", "Your repo"],
+];
 
 const features = [
 	{
 		title: "Only changed strings cost tokens",
-		body: "A lockfile records the source text behind every translation, so edits are retranslated automatically and nothing else is sent.",
+		body: "The lockfile records the source text behind every translation. Edit one string and only that string is retranslated, in every locale.",
 	},
 	{
 		title: "Existing translations adopted free",
-		body: "The first push records what you already have without calling a model. Broken ones get flagged and fixed.",
+		body: "Switching from another tool? The first push records what you already have without calling a model.",
 	},
 	{
-		title: "Validated, never partial",
-		body: "Placeholders, ICU plurals, and <tags> must survive. A locale with a failing key isn't written; the rest still land.",
+		title: "Broken translations caught",
+		body: "Dropped {placeholders}, mangled ICU plurals, and broken <tags> are flagged and retranslated, including ones already in your files.",
 	},
 	{
-		title: "Your repo, your key",
-		body: "Config, lockfile, brand voice, and glossary are files in .rosetta/. Any OpenAI-compatible model: OpenRouter, OpenAI, Ollama.",
+		title: "Never a partial file",
+		body: "A locale with a key that still fails after retries isn't written, and the error is reported. Every other locale still lands.",
+	},
+	{
+		title: "Key controls",
+		body: "lockedKeys copy URLs and prices verbatim, preservedKeys protect reviewed copy, and ignoredKeys keep internal strings out of targets.",
+	},
+	{
+		title: "Brand voice, rules, glossary",
+		body: "Per-locale voice (inline or in Markdown files), linguistic rules, exact term renderings, and a never-translate list.",
 	},
 ];
 
-const comparison = [
-	["Where it runs", "Your machine or CI runner", "Hosted engine"],
-	["Account", "None", "Required"],
-	["Credential", "Your model provider's key", "LINGO_API_KEY"],
-	["Brand voice, glossary, rules", "Files in your repo", "Platform dashboard"],
-	["Change tracking", "Per string", "Per file"],
+const configExample = `{
+  "sourceLocale": "en",
+  "targetLocales": ["es", "fr", "de", "ja", "pt-BR", "zh-CN"],
+  "files": [
+    { "pattern": "messages/en.json", "context": "Acme web app UI" }
+  ],
+  "engine": {
+    "model": "anthropic/claude-sonnet-4.5",
+    "brandVoice": { "*": "Friendly, plain, and direct." },
+    "glossary": { "*": { "Acme": "Acme" } }
+  }
+}`;
+
+const workflowExample = `# .github/workflows/i18n.yml
+on:
+  pull_request:
+  push: { branches: [main] }
+jobs:
+  i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ian/rosetta@v${pkg.version}
+        with:
+          # PRs: check (no key needed). main: translate + open a PR.
+          mode: \${{ github.event_name == 'pull_request'
+            && 'check' || 'pull-request' }}
+        env:
+          OPENROUTER_API_KEY: \${{ secrets.OPENROUTER_API_KEY }}`;
+
+const faq = [
+	{
+		q: "Is there a hosted version or an account?",
+		a: "No. Rosetta is a CLI and a library. It runs on your machine or CI runner and talks directly to your model provider. The only credential is that provider's API key.",
+	},
+	{
+		q: "What does it cost to run?",
+		a: "Only your model provider's tokens, and only for new, changed, or broken strings. Run <code>rosetta push --estimate</code> to see key counts and a token estimate before anything is sent.",
+	},
+	{
+		q: "Which file formats are supported?",
+		a: `JSON and JSONC today: next-intl, i18next, vue-i18n, and any key-value catalog. In JSONC files, comments become translator notes. Markdown/MDX is next (<a href="${repo}/issues/1">#1</a>).`,
+	},
+	{
+		q: "Which models work?",
+		a: "Any chat model behind an OpenAI-compatible endpoint. Rosetta asks for JSON output, strips code fences, and validates every value, so most instruction-following models do fine.",
+	},
+	{
+		q: "I'm on Lingo.dev. How do I move over?",
+		a: `Run <code>rosetta init --from-lingo</code>. It imports <code>.lingo/config.json</code> (or the legacy <code>i18n.json</code>), and the first push adopts your existing translations for free. The vocabulary is the same: <code>lockedKeys</code>, <code>push --key</code>, <code>check</code>, <code>purge</code>. See the <a href="${repo}/blob/main/docs/migrating-from-lingo.md">migration guide</a>.`,
+	},
+	{
+		q: "How do translations get into my repo?",
+		a: `However you like: run <code>push</code> locally or from an agent, gate PRs with <code>check</code>, or let the GitHub Action commit or open a rolling PR after merges. See <a href="${repo}/blob/main/docs/delivery.md">CI &amp; delivery</a>.`,
+	},
+	{
+		q: "Is it production-ready?",
+		a: `It's in beta (v${pkg.version}). The spec is stable, and it's covered by tests and a CI end-to-end run of the GitHub Action. Pin the version, and please <a href="${repo}/issues">open issues</a>.`,
+	},
 ];
 ---
 
@@ -56,54 +192,225 @@ const comparison = [
 	<header class="wrap nav">
 		<a class="logo" href="/"><img src="/favicon.svg" alt="" width="24" height="24" /> Rosetta</a>
 		<nav>
+			<a href="#get-started">Get started</a>
 			<a href={`${repo}#readme`}>Docs</a>
 			<a href={repo}>GitHub</a>
-			<a href="https://www.npmjs.com/package/rosetta-i18n">npm</a>
 		</nav>
 	</header>
 
 	<main>
 		<section class="wrap hero">
-			<p class="eyebrow">v{pkg.version} · MIT · no account</p>
-			<h1>Localization you run yourself.</h1>
-			<p class="lede">
-				A free, open-source Lingo.dev. Edit your source strings, run <code>rosetta push</code>, and every
-				locale gets the new and changed strings, translated with your own LLM key and validated before
-				anything is written.
-			</p>
-			<div class="ctas">
-				<a class="btn primary" href="#agent">Set up with your AI agent</a>
-				<a class="btn" href={`${repo}#quick-start`}>Quick start</a>
+			<div class="hero-copy">
+				<p class="eyebrow">v{pkg.version} · MIT · no account</p>
+				<h1>Localization you run yourself.</h1>
+				<p class="lede">
+					A free, open-source alternative to Lingo.dev. Edit your source strings, run{" "}
+					<code>rosetta push</code>, and every locale gets the new and changed strings, translated with your own
+					LLM key and validated before anything is written.
+				</p>
+				<div class="ctas">
+					<CopyButton text={agentPrompt} variant="primary" label="Copy the prompt for your AI agent">
+						Copy the prompt for your AI agent
+					</CopyButton>
+					<a class="btn" href="#get-started">Get started</a>
+				</div>
+				<p class="hint">Paste it into Claude Code, Cursor, Codex, or opencode from your project root.</p>
 			</div>
-			<pre class="terminal"><code><span class="c"># once</span>
-npm install -D {install}
-npx rosetta init
+			<div class="hero-demo">
+				<Terminal lines={demo} />
+			</div>
+		</section>
 
-<span class="c"># every time you change copy</span>
-npx rosetta push     <span class="c"># translate what changed, write files + .rosetta/lock.json</span>
-npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key needed)</span></code></pre>
+		<section class="wrap">
+			<article class="note">
+				<h2>Why I built Rosetta</h2>
+				<p>
+					I run a lot of websites, and I want all of them in a dozen or more languages. Lingo.dev got the
+					workflow right: edit your English, push, and every locale follows. I liked it enough to build Rosetta
+					on the same ideas.
+				</p>
+				<p>
+					What I couldn't make work was the pricing. The free plan caps throughput at 100,000 tokens a day, and
+					translating a full page of copy into a dozen languages goes through that quickly. The next step up is
+					$99 a month before usage. For one big product that's reasonable. When you have a lot of sites, it
+					isn't cost-effective.
+				</p>
+				<p>
+					The expensive part of translation is the model, and I already pay for one. So Rosetta is the same
+					workflow, running in your own repo with your own key. You pay your model provider for the tokens you
+					use, and nothing else. It's free and open source, so anyone else in the same spot can use it too.
+				</p>
+				<p class="sig">— Ian</p>
+			</article>
+		</section>
+
+		<section class="wrap">
+			<h2>Why Rosetta</h2>
+			<div class="grid three">
+				{
+					reasons.map((reason) => (
+						<div class="card">
+							<h3>{reason.title}</h3>
+							<p>{reason.body}</p>
+						</div>
+					))
+				}
+			</div>
+		</section>
+
+		<section class="wrap">
+			<h2>The math</h2>
+			<p class="muted">
+				Lingo.dev's published plans next to Rosetta. With Rosetta you still pay for tokens, but directly to your
+				model provider, with no cap and no markup.
+			</p>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th></th>
+							<th>Lingo.dev Sandbox</th>
+							<th>Lingo.dev Production</th>
+							<th class="us">Rosetta</th>
+						</tr>
+					</thead>
+					<tbody>
+						{
+							pricing.map(([label, sandbox, production, ours]) => (
+								<tr>
+									<th>{label}</th>
+									<td>{sandbox}</td>
+									<td>{production}</td>
+									<td class="us">{ours}</td>
+								</tr>
+							))
+						}
+					</tbody>
+				</table>
+			</div>
+			<p class="muted small">
+				Lingo.dev figures are from <a href="https://lingo.dev/en/pricing">lingo.dev/pricing</a> as of September 2026.
+				Enterprise pricing is custom.
+			</p>
+		</section>
+
+		<section class="wrap" id="get-started">
+			<h2>Get started</h2>
+			<p class="muted">
+				Requires Node 20+. Works with any JSON/JSONC locale files (next-intl, i18next, vue-i18n, …). Prefer to
+				hand it off? Your <a href="#agent">AI agent can do all of this</a>.
+			</p>
+
+			<ol class="steps">
+				<li>
+					<div class="step-text">
+						<h3>Install</h3>
+						<p>Add Rosetta as a dev dependency. The package is <code>rosetta-i18n</code>, and it installs a
+							<code>rosetta</code> command.</p>
+					</div>
+					<div class="code">
+						<CopyButton text={`npm install -D ${install}`} variant="inline" label="Copy install command" />
+						<pre><code>npm install -D {install}</code></pre>
+					</div>
+				</li>
+				<li>
+					<div class="step-text">
+						<h3>Create the config</h3>
+						<p>
+							<code>init</code> finds your source files (<code>messages/en.json</code>,
+							<code>locales/en/*.json</code>, <code>pages.en.json</code>, …), infers target locales from the
+							files next to them, and writes <code>.rosetta/config.json</code>. Coming from Lingo.dev? Use
+							<code>--from-lingo</code>.
+						</p>
+					</div>
+					<div class="code">
+						<CopyButton text="npx rosetta init" variant="inline" label="Copy init command" />
+						<pre><code>npx rosetta init
+<span class="c"># or: npx rosetta init --pattern messages/en.json --target es,fr,de</span>
+<span class="c"># or: npx rosetta init --from-lingo</span></code></pre>
+					</div>
+				</li>
+				<li>
+					<div class="step-text">
+						<h3>Tune the engine</h3>
+						<p>
+							Pick a model and give it your brand voice and never-translate terms. Add <code>lockedKeys</code>
+							for anything that must stay identical (URLs, prices), and a <code>context</code> per file.
+						</p>
+					</div>
+					<div class="code">
+						<span class="file">.rosetta/config.json</span>
+						<pre><code>{configExample}</code></pre>
+					</div>
+				</li>
+				<li>
+					<div class="step-text">
+						<h3>Add your model key</h3>
+						<p>
+							Rosetta has no key of its own. Use your OpenRouter key, or point <code>engine.baseURL</code> at
+							any OpenAI-compatible endpoint and set <code>engine.apiKeyEnv</code> to its variable.
+						</p>
+					</div>
+					<div class="code">
+						<pre><code>export OPENROUTER_API_KEY=sk-or-...</code></pre>
+					</div>
+				</li>
+				<li>
+					<div class="step-text">
+						<h3>Preview, then push</h3>
+						<p>
+							<code>status</code> shows what would happen, with no key and no cost. The first <code>push</code>
+							adopts your existing translations for free and translates only what's missing, changed, or broken.
+						</p>
+					</div>
+					<div class="code">
+						<CopyButton text="npx rosetta status && npx rosetta push" variant="inline" label="Copy commands" />
+						<pre><code>npx rosetta status   <span class="c"># es  3 to translate · 412 to adopt</span>
+npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json</span></code></pre>
+					</div>
+				</li>
+				<li>
+					<div class="step-text">
+						<h3>Commit, then keep it in sync</h3>
+						<p>
+							Commit <code>.rosetta/</code> with your locale files. From then on it's
+							<strong>edit English → push → commit</strong>, run yourself, by an agent, or by the GitHub Action.
+						</p>
+					</div>
+					<div class="code">
+						<span class="file">.github/workflows/i18n.yml</span>
+						<pre><code>{workflowExample}</code></pre>
+					</div>
+				</li>
+			</ol>
 		</section>
 
 		<section class="wrap" id="agent">
-			<h2>Set up with your AI agent</h2>
+			<h2>Or let your AI agent set it up</h2>
 			<p class="muted">
-				Paste this into Claude Code, Cursor, Codex, or opencode from your project root. It finds your locale
-				files, adopts your existing translations, reports the broken ones, wires up CI, and opens one PR.
+				This prompt has your agent find your locale files and current setup, configure Rosetta, adopt your existing
+				translations, report any that are broken today, wire up CI, and open one PR. It checks with you before
+				anything expensive.
 			</p>
 			<div class="prompt">
-				<button type="button" class="copy" data-copy-target="agent-prompt">Copy</button>
+				<CopyButton target="agent-prompt" variant="ghost" class="prompt-copy" label="Copy" />
 				<pre id="agent-prompt">{agentPrompt}</pre>
 			</div>
 			<p class="muted small">
-				Also give your agent everyday Rosetta know-how with the <a href={skillUrl}>skill</a>, or use the{" "}
-				<a href={`${repo}/blob/main/docs/agent-prompt.md`}>self-contained prompt</a> for agents that can't
-				fetch URLs.
+				For everyday requests ("add a German string", "why is the i18n job red?"), install the{" "}
+				<a href={skillUrl}>Rosetta skill</a>. For agents that can't fetch URLs, use the{" "}
+				<a href={`${repo}/blob/main/docs/agent-prompt.md`}>self-contained prompt</a>.
 			</p>
 		</section>
 
 		<section class="wrap">
 			<h2>How it works</h2>
-			<div class="grid">
+			<p class="muted">
+				Rosetta keeps a lockfile, <code>.rosetta/lock.json</code>, that records a fingerprint of the source string
+				behind every translation. On each push, every key is translated, retranslated, kept, adopted, copied, or
+				removed, and nothing else is touched.
+			</p>
+			<div class="grid three">
 				{
 					features.map((feature) => (
 						<div class="card">
@@ -116,59 +423,46 @@ npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key nee
 		</section>
 
 		<section class="wrap">
-			<h2>Rosetta vs. Lingo.dev</h2>
-			<p class="muted">
-				Same layout and vocabulary (<code>.rosetta/config.json</code>, <code>lockedKeys</code>,{" "}
-				<code>push --key</code>), so moving over is <code>rosetta init --from-lingo</code>.
-			</p>
-			<div class="table-wrap">
-			<table>
-				<thead>
-					<tr><th></th><th>Rosetta</th><th>Lingo.dev</th></tr>
-				</thead>
-				<tbody>
-					{
-						comparison.map(([label, ours, theirs]) => (
-							<tr>
-								<th>{label}</th>
-								<td>{ours}</td>
-								<td>{theirs}</td>
-							</tr>
-						))
-					}
-				</tbody>
-			</table>
+			<h2>Questions</h2>
+			<div class="faq">
+				{
+					faq.map((item) => (
+						<details>
+							<summary>{item.q}</summary>
+							<p set:html={item.a} />
+						</details>
+					))
+				}
+			</div>
+		</section>
+
+		<section class="wrap final">
+			<h2>Try it on your project</h2>
+			<p class="muted">One prompt, one PR. Or three commands, if you'd rather do it yourself.</p>
+			<div class="ctas center">
+				<CopyButton text={agentPrompt} variant="primary" label="Copy the prompt for your AI agent">
+					Copy the prompt for your AI agent
+				</CopyButton>
+				<a class="btn" href={repo}>View on GitHub</a>
 			</div>
 		</section>
 	</main>
 
 	<footer class="wrap footer">
 		<span>MIT © Ian Hunter</span>
+		<a href={`${repo}#readme`}>Docs</a>
 		<a href={`${repo}/blob/main/docs/delivery.md`}>CI &amp; delivery</a>
 		<a href={`${repo}/blob/main/docs/migrating-from-lingo.md`}>Migrating from Lingo.dev</a>
-		<a href={`${repo}/blob/main/docs/spec-v1.md`}>Spec</a>
+		<a href="https://www.npmjs.com/package/rosetta-i18n">npm</a>
 	</footer>
 </Base>
 
-<script>
-	for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy-target]")) {
-		button.addEventListener("click", async () => {
-			const target = document.getElementById(button.dataset.copyTarget ?? "");
-			if (!target) return;
-			await navigator.clipboard.writeText(target.textContent ?? "");
-			button.textContent = "Copied";
-			setTimeout(() => {
-				button.textContent = "Copy";
-			}, 1500);
-		});
-	}
-</script>
-
 <style>
 	.wrap {
-		max-width: 64rem;
+		max-width: 72rem;
 		margin: 0 auto;
-		padding: 0 1.5rem;
+		padding-left: 1.5rem;
+		padding-right: 1.5rem;
 	}
 	.nav {
 		display: flex;
@@ -184,6 +478,9 @@ npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key nee
 		font-weight: 700;
 		text-decoration: none;
 	}
+	nav {
+		white-space: nowrap;
+	}
 	nav a {
 		margin-left: 1.25rem;
 		color: var(--muted);
@@ -193,10 +490,44 @@ npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key nee
 		color: var(--fg);
 	}
 	section {
-		padding-top: 3.5rem;
+		padding-top: 4.5rem;
 	}
+	h2 {
+		font-size: 1.75rem;
+		margin: 0 0 0.75rem;
+		letter-spacing: -0.01em;
+	}
+	h3 {
+		font-size: 1.05rem;
+		margin: 0 0 0.4rem;
+	}
+	code {
+		background: color-mix(in srgb, var(--card) 70%, var(--line));
+		padding: 0.1em 0.35em;
+		border-radius: 0.3em;
+	}
+	pre code {
+		background: none;
+		padding: 0;
+	}
+	a {
+		text-underline-offset: 0.18em;
+	}
+	.muted {
+		color: var(--muted);
+		max-width: 48rem;
+	}
+	.small {
+		font-size: 0.88rem;
+	}
+
+	/* Hero */
 	.hero {
-		padding-top: 4rem;
+		padding-top: 3.5rem;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+		gap: 3rem;
+		align-items: center;
 	}
 	.eyebrow {
 		color: var(--accent);
@@ -205,145 +536,109 @@ npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key nee
 		margin: 0;
 	}
 	h1 {
-		font-size: clamp(2.25rem, 5vw, 3.5rem);
-		line-height: 1.1;
+		font-size: clamp(2.4rem, 5vw, 3.6rem);
+		line-height: 1.05;
 		margin: 0.5rem 0 1rem;
-		letter-spacing: -0.02em;
-	}
-	h2 {
-		font-size: 1.6rem;
-		margin: 0 0 0.75rem;
-	}
-	h3 {
-		font-size: 1.05rem;
-		margin: 0 0 0.4rem;
+		letter-spacing: -0.03em;
 	}
 	.lede {
-		font-size: 1.2rem;
-		max-width: 44rem;
+		font-size: 1.15rem;
 		color: var(--muted);
 		margin: 0;
-	}
-	.muted {
-		color: var(--muted);
-		max-width: 46rem;
-	}
-	.small {
-		font-size: 0.9rem;
 	}
 	.ctas {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.75rem;
-		margin: 2rem 0;
+		margin: 2rem 0 0.75rem;
 	}
-	.hero {
-		padding-bottom: 1rem;
-	}
-	nav {
-		white-space: nowrap;
-	}
-	@media (max-width: 480px) {
-		nav a {
-			margin-left: 0.9rem;
-		}
-		.terminal,
-		.prompt {
-			padding: 1rem;
-			font-size: 0.85rem;
-		}
-		tbody th {
-			white-space: normal;
-		}
+	.ctas.center {
+		justify-content: center;
 	}
 	.btn {
-		display: inline-block;
-		padding: 0.65rem 1.1rem;
+		display: inline-flex;
+		align-items: center;
+		padding: 0.75rem 1.2rem;
 		border-radius: 0.5rem;
 		border: 1px solid var(--line);
 		text-decoration: none;
 		font-weight: 600;
 	}
-	.btn.primary {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: #111827;
+	.btn:hover {
+		border-color: var(--muted);
 	}
-	pre {
+	.hint {
+		color: var(--muted);
+		font-size: 0.88rem;
 		margin: 0;
-		overflow-x: auto;
 	}
-	.terminal pre,
-	pre.terminal {
-		white-space: pre;
+	.hero-demo {
+		min-width: 0;
 	}
-	.prompt pre {
-		white-space: pre-wrap;
-		overflow-wrap: anywhere;
+	.hero + section {
+		padding-top: 5rem;
 	}
-	.table-wrap {
-		overflow-x: auto;
-	}
-	.terminal,
-	.prompt {
-		background: var(--code-bg);
-		color: var(--code-fg);
+
+	/* Author note */
+	.note {
+		max-width: 46rem;
+		margin: 0 auto;
+		padding: 2rem 2.25rem;
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-left: 3px solid var(--accent);
 		border-radius: 0.75rem;
-		padding: 1.25rem 1.5rem;
+		font-size: 1.05rem;
 	}
-	.terminal .c {
-		color: #64748b;
+	.note h2 {
+		font-size: 1.35rem;
 	}
-	.prompt {
-		position: relative;
-		margin: 1.25rem 0 0.75rem;
+	.note p {
+		margin: 0 0 1rem;
 	}
-	.prompt pre {
-		padding-right: 4.5rem;
-		line-height: 1.55;
+	.sig {
+		font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive;
+		font-size: 1.6rem;
+		color: var(--accent);
+		margin: 1.25rem 0 0 !important;
 	}
-	.copy {
-		position: absolute;
-		top: 0.75rem;
-		right: 0.75rem;
-		background: #1e293b;
-		color: var(--code-fg);
-		border: 1px solid #334155;
-		border-radius: 0.4rem;
-		padding: 0.3rem 0.75rem;
-		font: inherit;
-		font-size: 0.85rem;
-		cursor: pointer;
-	}
-	.copy:hover {
-		background: #334155;
-	}
+
+	/* Cards */
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 		gap: 1rem;
+		margin-top: 1.5rem;
+	}
+	.grid.three {
+		grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
 	}
 	.card {
 		background: var(--card);
 		border: 1px solid var(--line);
 		border-radius: 0.75rem;
-		padding: 1.25rem;
+		padding: 1.25rem 1.35rem;
 	}
 	.card p {
 		margin: 0;
 		color: var(--muted);
 		font-size: 0.95rem;
 	}
+
+	/* Tables */
+	.table-wrap {
+		overflow-x: auto;
+		margin-top: 1.25rem;
+	}
 	table {
 		width: 100%;
 		border-collapse: collapse;
-		margin-top: 1rem;
 		font-size: 0.95rem;
+		min-width: 40rem;
 	}
 	th,
 	td {
 		text-align: left;
-		padding: 0.6rem 0.75rem;
+		padding: 0.7rem 0.8rem;
 		border-bottom: 1px solid var(--line);
 	}
 	thead th {
@@ -352,15 +647,167 @@ npx rosetta check    <span class="c"># CI gate: stale or broken? (no API key nee
 	}
 	tbody th {
 		font-weight: 600;
-		white-space: nowrap;
 	}
+	.us {
+		color: var(--accent);
+		font-weight: 600;
+	}
+	thead .us {
+		color: var(--accent);
+	}
+
+	/* Steps */
+	.steps {
+		list-style: none;
+		counter-reset: step;
+		padding: 0;
+		margin: 2rem 0 0;
+		display: grid;
+		gap: 1.5rem;
+	}
+	.steps li {
+		counter-increment: step;
+		display: grid;
+		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+		gap: 1.5rem;
+		align-items: start;
+		padding-bottom: 1.5rem;
+		border-bottom: 1px solid var(--line);
+	}
+	.steps li:last-child {
+		border-bottom: 0;
+	}
+	.step-text h3::before {
+		content: counter(step);
+		display: inline-grid;
+		place-items: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		margin-right: 0.6rem;
+		border-radius: 50%;
+		background: var(--accent);
+		color: #111827;
+		font-size: 0.85rem;
+	}
+	.step-text p {
+		margin: 0;
+		color: var(--muted);
+	}
+	.code {
+		position: relative;
+		background: var(--code-bg);
+		color: var(--code-fg);
+		border-radius: 0.6rem;
+		padding: 0.9rem 1.1rem;
+		min-width: 0;
+	}
+	.code pre {
+		margin: 0;
+		overflow-x: auto;
+		font-size: 0.84rem;
+		line-height: 1.55;
+	}
+	.code .c {
+		color: #64748b;
+	}
+	.code :global(.copy-btn.inline) {
+		position: absolute;
+		top: 0.55rem;
+		right: 0.55rem;
+	}
+	.file {
+		display: block;
+		color: #64748b;
+		font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+		font-size: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	/* Agent prompt */
+	.prompt {
+		position: relative;
+		background: var(--code-bg);
+		color: var(--code-fg);
+		border-radius: 0.75rem;
+		padding: 1.25rem 1.5rem;
+		margin: 1.25rem 0 0.75rem;
+	}
+	.prompt pre {
+		margin: 0;
+		padding-right: 5rem;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		line-height: 1.55;
+		font-size: 0.88rem;
+	}
+	.prompt :global(.prompt-copy) {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
+	}
+
+	/* FAQ */
+	.faq {
+		margin-top: 1.25rem;
+		border-top: 1px solid var(--line);
+	}
+	details {
+		border-bottom: 1px solid var(--line);
+		padding: 0.9rem 0.25rem;
+	}
+	summary {
+		cursor: pointer;
+		font-weight: 600;
+	}
+	details p {
+		color: var(--muted);
+		margin: 0.6rem 0 0.2rem;
+		max-width: 50rem;
+	}
+
+	.final {
+		text-align: center;
+	}
+	.final .muted {
+		margin: 0 auto;
+	}
+
 	.footer {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 1.25rem;
 		color: var(--muted);
 		font-size: 0.9rem;
-		padding-top: 4rem;
+		padding-top: 4.5rem;
 		padding-bottom: 3rem;
+	}
+
+	@media (max-width: 900px) {
+		.hero {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 2rem;
+		}
+		.steps li {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0.75rem;
+		}
+	}
+	@media (max-width: 480px) {
+		nav a {
+			margin-left: 0.85rem;
+		}
+		nav a:first-child {
+			display: none;
+		}
+		.note {
+			padding: 1.5rem 1.35rem;
+		}
+		.prompt {
+			padding: 1rem;
+		}
+		.prompt pre {
+			padding-right: 0;
+			padding-top: 2rem;
+		}
 	}
 </style>
