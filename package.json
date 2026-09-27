@@ -45,7 +45,7 @@
 		},
 		"./config": {
 			"types": "./dist/types/config.d.ts",
-			"default": "./dist/esm/index.js"
+			"default": "./dist/esm/config.js"
 		},
 		"./package.json": "./package.json"
 	},
@@ -80,7 +80,7 @@
 		"vitest": "^3.2.7"
 	},
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	},
 	"packageManager": "pnpm@9.7.1"
 }
