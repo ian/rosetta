@@ -395,3 +395,18 @@ describe("rosetta CLI", () => {
 		expect(result.stderr).toMatch(/deprecated/);
 	});
 });
+
+describe("examples", () => {
+	it("examples/next-intl is up to date", async () => {
+		const out: string[] = [];
+		const code = await run(["check"], {
+			cwd: join(__dirname, "../examples/next-intl"),
+			env: {},
+			interactive: false,
+			stdout: (t) => out.push(t),
+			stderr: (t) => out.push(t),
+		});
+		expect(out.join("\n")).toContain("All translations are up to date.");
+		expect(code).toBe(EXIT.ok);
+	});
+});

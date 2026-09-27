@@ -60,15 +60,15 @@ export class ConfigError extends Error {
 	}
 }
 
-const TOP_LEVEL = new Set([
+export const TOP_LEVEL = new Set([
 	"$schema",
 	"sourceLocale",
 	"targetLocales",
 	"files",
 	"engine",
 ]);
-const LINGO_ONLY = new Set(["orgId", "engineId", "github", "version"]);
-const FILE_FIELDS = new Set([
+export const LINGO_ONLY = new Set(["orgId", "engineId", "github", "version"]);
+export const FILE_FIELDS = new Set([
 	"pattern",
 	"format",
 	"context",
@@ -76,7 +76,7 @@ const FILE_FIELDS = new Set([
 	"preservedKeys",
 	"ignoredKeys",
 ]);
-const ENGINE_FIELDS = new Set([
+export const ENGINE_FIELDS = new Set([
 	"model",
 	"baseURL",
 	"apiKeyEnv",

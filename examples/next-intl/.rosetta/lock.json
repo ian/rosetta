@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "files": {
+    "messages/en.json": {
+      "es": {
+        "Home.cta": "28ef081ffc76d424",
+        "Home.notes": "e12769c21c7473c1",
+        "Home.terms": "d47f91debd6724e4",
+        "Home.title": "112b1022f9403c0a",
+        "Nav.docs.href": "4cc60fab99338bb9",
+        "Nav.docs.label": "7af023c43013b9a5",
+        "Nav.home": "3a78695388b38b5c",
+        "Nav.settings": "74a883a037bc227f",
+        "Settings.theme": "dbcd5e7bb7a0f538",
+        "Settings.workspace": "7f34138410c119f0"
+      },
+      "ja": {
+        "Home.cta": "28ef081ffc76d424",
+        "Home.notes": "e12769c21c7473c1",
+        "Home.terms": "d47f91debd6724e4",
+        "Home.title": "112b1022f9403c0a",
+        "Nav.docs.href": "4cc60fab99338bb9",
+        "Nav.docs.label": "7af023c43013b9a5",
+        "Nav.home": "3a78695388b38b5c",
+        "Nav.settings": "74a883a037bc227f",
+        "Settings.theme": "dbcd5e7bb7a0f538",
+        "Settings.workspace": "7f34138410c119f0"
+      }
+    }
+  }
+}

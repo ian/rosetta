@@ -1,0 +1,45 @@
+# Copy to .github/workflows/i18n.yml in your app.
+name: i18n
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths: ["messages/en.json", ".rosetta/**"]
+  workflow_dispatch:
+
+jobs:
+  # Every PR: fail if translations are stale or broken. No API key needed.
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ian/rosetta@v1
+        with:
+          mode: check
+
+  # After merges to main: translate what changed and open/update one PR.
+  translate:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency: { group: i18n, cancel-in-progress: false }
+    steps:
+      # A GitHub App token lets CI run on the translation PR. With the default
+      # GITHUB_TOKEN the PR is still opened, but other workflows won't run on it.
+      - uses: actions/create-github-app-token@v1
+        id: app
+        with:
+          app-id: ${{ vars.I18N_APP_ID }}
+          private-key: ${{ secrets.I18N_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app.outputs.token }}
+      - uses: ian/rosetta@v1
+        with:
+          mode: pull-request
+          token: ${{ steps.app.outputs.token }}
+        env:
+          ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

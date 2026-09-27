@@ -1,0 +1,24 @@
+// Rosetta config — https://github.com/ian/rosetta
+// Comments are allowed. Run `rosetta push` to translate, `rosetta check` in CI.
+{
+  "$schema": "https://unpkg.com/rosetta-i18n@1/schema/config.json",
+  "sourceLocale": "en",
+  "targetLocales": ["es", "ja"],
+  "files": [
+    {
+      "pattern": "messages/en.json",
+      "context": "Acme Notes web app UI (next-intl).",
+      // Values that must stay identical in every locale.
+      "lockedKeys": ["**.href"]
+    }
+  ],
+  "engine": {
+    "model": "anthropic/claude-sonnet-4.5",
+    "brandVoice": {
+      "*": "voice/default.md",
+      "ja": "Polite and concise (です/ます). Prefer natural Japanese UI conventions over literal translation."
+    },
+    "rules": ["Use sentence case for buttons and headings.", "Keep UI labels short."],
+    "glossary": "glossary.json"
+  }
+}

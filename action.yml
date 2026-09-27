@@ -1,0 +1,76 @@
+name: Rosetta i18n
+description: Free, open-source, self-run localization (a DIY Lingo.dev). Translate changed strings with your own LLM key, then open a PR, commit, or just check.
+author: Ian Hunter
+branding:
+  icon: globe
+  color: blue
+
+inputs:
+  mode:
+    description: "pull-request (translate + create/update one rolling PR), commit (translate + commit to the current branch), or check (fail if translations are stale; no API key needed)."
+    default: pull-request
+  token:
+    description: Token used to push and open PRs. Use a GitHub App token or PAT if CI should run on the bot's commits/PRs (GitHub doesn't trigger workflows for GITHUB_TOKEN pushes).
+    default: ${{ github.token }}
+  branch:
+    description: Branch for the rolling translation PR (pull-request mode).
+    default: rosetta/translations
+  base:
+    description: Base branch for the PR (pull-request mode). Defaults to the branch the workflow ran on.
+    default: ""
+  commit-message:
+    description: Commit message for translation commits.
+    default: "chore(i18n): update translations"
+  pr-title:
+    description: Title of the translation PR.
+    default: "chore(i18n): update translations"
+  pr-body:
+    description: Extra markdown to put above the generated summary in the PR body.
+    default: ""
+  args:
+    description: Extra arguments for `rosetta push` (e.g. "--locale es --key auth.*").
+    default: ""
+  working-directory:
+    description: Directory containing .rosetta/ (the project root).
+    default: "."
+  version:
+    description: rosetta-i18n version (or a path/tarball) to run. Default uses the project's installed rosetta if present, else the Action's major version from npm.
+    default: ""
+  node-version:
+    description: Node.js version to set up. Set to "" to use the runner's Node.
+    default: "22"
+
+outputs:
+  changed:
+    description: '"true" if translation files changed.'
+    value: ${{ steps.rosetta.outputs.changed }}
+  pr-url:
+    description: URL of the created/updated PR (pull-request mode).
+    value: ${{ steps.rosetta.outputs.pr-url }}
+  commit-sha:
+    description: SHA of the translation commit, if one was made.
+    value: ${{ steps.rosetta.outputs.commit-sha }}
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.node-version != ''
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - id: rosetta
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: '"$GITHUB_ACTION_PATH/action/run.sh"'
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        INPUT_PR_TITLE: ${{ inputs.pr-title }}
+        INPUT_PR_BODY: ${{ inputs.pr-body }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}

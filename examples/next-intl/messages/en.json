@@ -1,0 +1,20 @@
+{
+  "Nav": {
+    "home": "Home",
+    "settings": "Settings",
+    "docs": {
+      "label": "Docs",
+      "href": "https://acme.example/docs"
+    }
+  },
+  "Home": {
+    "title": "Welcome back, {name}",
+    "notes": "{count, plural, one {You have # note} other {You have # notes}}",
+    "cta": "Create a note",
+    "terms": "By continuing you agree to our <terms>Terms</terms>."
+  },
+  "Settings": {
+    "workspace": "Rename your workspace",
+    "theme": "Light"
+  }
+}

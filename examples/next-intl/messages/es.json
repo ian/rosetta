@@ -1,0 +1,20 @@
+{
+  "Nav": {
+    "home": "Inicio",
+    "settings": "Ajustes",
+    "docs": {
+      "label": "Documentación",
+      "href": "https://acme.example/docs"
+    }
+  },
+  "Home": {
+    "title": "Hola de nuevo, {name}",
+    "notes": "{count, plural, one {Tienes # nota} other {Tienes # notas}}",
+    "cta": "Crear una nota",
+    "terms": "Al continuar, aceptas nuestros <terms>Términos</terms>."
+  },
+  "Settings": {
+    "workspace": "Cambia el nombre de tu espacio de trabajo",
+    "theme": "Claro"
+  }
+}

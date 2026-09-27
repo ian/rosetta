@@ -1,0 +1,20 @@
+{
+  "Nav": {
+    "home": "ホーム",
+    "settings": "設定",
+    "docs": {
+      "label": "ドキュメント",
+      "href": "https://acme.example/docs"
+    }
+  },
+  "Home": {
+    "title": "おかえりなさい、{name}さん",
+    "notes": "{count, plural, other {ノートが#件あります}}",
+    "cta": "ノートを作成",
+    "terms": "続行すると、<terms>利用規約</terms>に同意したことになります。"
+  },
+  "Settings": {
+    "workspace": "ワークスペースの名前を変更",
+    "theme": "ライト"
+  }
+}
