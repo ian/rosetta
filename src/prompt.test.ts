@@ -100,3 +100,50 @@ describe("buildDataPrompt", () => {
 		expect(prompt).not.toContain("Key disambiguation");
 	});
 });
+
+describe("v1 prompt additions", () => {
+	const brandVoice = { variations: { "*": "Voice." } };
+
+	it("adds rules and do-not-translate glossary terms", () => {
+		const prompt = buildSystemPrompt({
+			brandVoice,
+			rules: ["Use sentence case."],
+			glossary: {
+				"*": { Jot: "Jot", Quip: "Quip" },
+				ja: { workspace: "ワークスペース" },
+			},
+			source: "en",
+			target: "ja",
+		});
+		expect(prompt).toContain("Rules:\n- Use sentence case.");
+		expect(prompt).toContain('- "workspace" -> ワークスペース');
+		expect(prompt).toContain('keep them exactly as written: "Jot", "Quip"');
+		expect(prompt.indexOf("Rules:")).toBeLessThan(prompt.indexOf("Glossary"));
+	});
+
+	it("uses JSON output instructions in json mode", () => {
+		const prompt = buildSystemPrompt({
+			brandVoice,
+			source: "en",
+			target: "ar",
+			mode: "json",
+		});
+		expect(prompt).toContain("Return ONLY a JSON object");
+		expect(prompt).toContain("plural categories that are correct for ar");
+		expect(prompt).not.toContain("Return ONLY the translated text");
+	});
+
+	it("includes translator notes for keys in the batch only", () => {
+		const prompt = buildDataPrompt(
+			{ save: "Save" },
+			{
+				source: "en",
+				target: "es",
+				notes: { save: "Button label", other: "unused" },
+			},
+		);
+		expect(prompt).toContain("Translator notes:\n- save: Button label");
+		expect(prompt).not.toContain("unused");
+		expect(prompt.trim().endsWith("}")).toBe(true);
+	});
+});
