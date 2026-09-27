@@ -563,7 +563,12 @@ pnpm bump patch   # bump package.json, commit, tag, push
 pnpm release      # create the GitHub Release -> triggers npm-publish
 ```
 
-- `pnpm bump` accepts `patch`, `minor`, or `major` (default `patch`).
+- `pnpm bump` accepts `patch`, `minor`, or `major` (default `patch`); `premajor`,
+  `preminor`, `prepatch`, or `prerelease` for a `-beta.N` prerelease; or an explicit
+  version such as `1.0.0-beta.1`.
+- Prereleases publish under npm's `next` dist-tag (so `latest` doesn't move) and are
+  marked as prereleases on GitHub. Stable releases also move the `v<major>` tag that
+  `uses: ian/rosetta@v1` resolves to.
 - `pnpm release` creates the GitHub Release for the latest tag with generated release
   notes, which triggers `.github/workflows/npm-publish.yml`.
 

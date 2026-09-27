@@ -160,7 +160,7 @@ jobs:
 | `pr-body` | `""` | Markdown placed above the generated summary. |
 | `args` | `""` | Extra `rosetta push` arguments, e.g. `--locale es --key "auth.*"`. |
 | `working-directory` | `.` | Directory containing `.rosetta/`. |
-| `version` | auto | rosetta-i18n version or tarball. By default the Action uses the project's installed `rosetta` if there is one, otherwise the Action's major version from npm. |
+| `version` | auto | rosetta-i18n version or tarball. By default the Action uses the project's installed `rosetta` if there is one. Otherwise it uses the version matching the Action ref: `@v1.2.3` → `1.2.3`, `@v1` → latest `1.x`. |
 | `node-version` | `22` | Node to set up. Pass `""` to use the runner's own Node. |
 
 | Output | Description |

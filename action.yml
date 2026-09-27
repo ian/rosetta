@@ -34,7 +34,7 @@ inputs:
     description: Directory containing .rosetta/ (the project root).
     default: "."
   version:
-    description: rosetta-i18n version (or a path/tarball) to run. Default uses the project's installed rosetta if present, else the Action's major version from npm.
+    description: "rosetta-i18n version (or a path/tarball) to run. Default: the project's installed rosetta if present; otherwise the version matching the Action ref (@v1.2.3 → 1.2.3, @v1 → latest 1.x)."
     default: ""
   node-version:
     description: Node.js version to set up. Set to "" to use the runner's Node.

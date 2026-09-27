@@ -30,7 +30,14 @@ elif [ -z "${INPUT_VERSION:-}" ] && [ -x node_modules/.bin/rosetta ]; then
 else
   version="${INPUT_VERSION:-}"
   if [ -z "$version" ]; then
-    if [[ "${ACTION_REF:-}" =~ ^v([0-9]+) ]]; then version="${BASH_REMATCH[1]}"; else version="latest"; fi
+    # ian/rosetta@v1.2.3 (or @v1.0.0-beta.1) → that exact version; @v1 → latest 1.x.
+    if [[ "${ACTION_REF:-}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
+      version="${BASH_REMATCH[1]}"
+    elif [[ "${ACTION_REF:-}" =~ ^v([0-9]+) ]]; then
+      version="${BASH_REMATCH[1]}"
+    else
+      version="latest"
+    fi
   fi
   if [[ "$version" == */* || "$version" == *.tgz || "$version" == file:* ]]; then
     spec="$version"
