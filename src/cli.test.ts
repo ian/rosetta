@@ -315,7 +315,7 @@ describe("rosetta CLI", () => {
 			const s = setup();
 			const result = await s.exec(["push"], { translator: undefined, env: {} });
 			expect(result.code).toBe(EXIT.usage);
-			expect(result.stderr).toMatch(/ROSETTA_API_KEY/);
+			expect(result.stderr).toMatch(/OPENROUTER_API_KEY/);
 		});
 
 		it("check --json and status report stale keys after a source edit", async () => {

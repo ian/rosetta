@@ -42,4 +42,4 @@ jobs:
           mode: pull-request
           token: ${{ steps.app.outputs.token }}
         env:
-          ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

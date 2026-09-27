@@ -356,7 +356,7 @@ export async function push(
 		const engine = resolveEngine(project, options.env);
 		if (!engine.apiKey) {
 			throw new ConfigError(
-				`No API key: set ${engine.apiKeyEnv}${engine.apiKeyEnv === "OPENROUTER_API_KEY" ? "" : " (or OPENROUTER_API_KEY)"}.`,
+				`No API key: set ${engine.apiKeyEnv} to your model provider's API key${project.config.engine?.apiKeyEnv ? "" : " (or set engine.apiKeyEnv to use a different variable)"}.`,
 			);
 		}
 		translator = new Rosetta({ ...engine, apiKey: engine.apiKey });

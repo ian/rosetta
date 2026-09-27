@@ -152,6 +152,37 @@ describe("push", () => {
 		expect(check(p.load()).ok).toBe(true);
 	});
 
+	it("reads the provider key from engine.apiKeyEnv, with no other fallback", async () => {
+		const { resolveEngine } = await import("./config");
+		const p = project({ "messages/en.json": { a: "Hello" } });
+		expect(
+			resolveEngine(p.load(), { OPENROUTER_API_KEY: "or-key" }).apiKey,
+		).toBe("or-key");
+
+		const custom = project(
+			{ "messages/en.json": { a: "Hello" } },
+			{
+				engine: {
+					model: "gpt-4o",
+					baseURL: "https://api.openai.com/v1",
+					apiKeyEnv: "OPENAI_API_KEY",
+				},
+			},
+		);
+		expect(
+			resolveEngine(custom.load(), {
+				OPENAI_API_KEY: "oa-key",
+				OPENROUTER_API_KEY: "or-key",
+			}).apiKey,
+		).toBe("oa-key");
+		expect(
+			resolveEngine(custom.load(), { OPENROUTER_API_KEY: "or-key" }).apiKey,
+		).toBeUndefined();
+		await expect(push(custom.load(), { env: {} })).rejects.toThrow(
+			"No API key: set OPENAI_API_KEY to your model provider's API key.",
+		);
+	});
+
 	it("does not need an API key when nothing needs translating", async () => {
 		const p = project({
 			"messages/en.json": { a: "Hello" },
@@ -166,7 +197,7 @@ describe("push", () => {
 		const p = project({ "messages/en.json": { a: "Hello" } });
 		await expect(push(p.load(), { env: {} })).rejects.toThrow(ConfigError);
 		await expect(push(p.load(), { env: {} })).rejects.toThrow(
-			/ROSETTA_API_KEY/,
+			/OPENROUTER_API_KEY/,
 		);
 	});
 

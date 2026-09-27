@@ -52,9 +52,13 @@ explicitly, or `--from-lingo` to import a Lingo.dev config.
 Then set a key and push:
 
 ```bash
-export ROSETTA_API_KEY=sk-or-...        # or OPENROUTER_API_KEY
+export OPENROUTER_API_KEY=sk-or-...     # your model provider's key
 npx rosetta push
 ```
+
+The key is your model provider's key (OpenRouter by default). Rosetta has no account,
+server, or key of its own; set `engine.apiKeyEnv` to use another provider's variable,
+e.g. `OPENAI_API_KEY`.
 
 Commit `.rosetta/` together with the translated files. From now on the loop is:
 **edit English → `rosetta push` → commit.** Add `rosetta check` to CI to catch
@@ -178,7 +182,7 @@ than guessing where targets should go.
 | --- | --- | --- |
 | `model` | — | Model id. Overridden by `ROSETTA_MODEL`. |
 | `baseURL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint, e.g. `http://localhost:11434/v1` for Ollama. Overridden by `ROSETTA_BASE_URL`. |
-| `apiKeyEnv` | `ROSETTA_API_KEY` | Env var holding the key. `OPENROUTER_API_KEY` is always tried as a fallback. |
+| `apiKeyEnv` | `OPENROUTER_API_KEY` | Env var holding your model provider's key, e.g. `OPENAI_API_KEY` when `baseURL` points at OpenAI. |
 | `brandVoice` | — | Map of locale (or `*` fallback) to a voice briefing, inline or as a path to a `.md`/`.txt` file in `.rosetta/`. |
 | `rules` | — | String or list of linguistic rules added to every prompt. |
 | `glossary` | — | Inline object or path to a JSON/JSONC file: `{ "ja": { "workspace": "ワークスペース" }, "*": { "Acme": "Acme" } }`. Terms under `*` are never translated. |
@@ -255,8 +259,7 @@ Global flags: `--config <path>`, `--json`, `--quiet`, `--help`, `--version`.
 
 | Variable | Description |
 | --- | --- |
-| `ROSETTA_API_KEY` | API key (or whatever `engine.apiKeyEnv` names). |
-| `OPENROUTER_API_KEY` | Fallback API key. |
+| `OPENROUTER_API_KEY` | Your model provider's API key (or whatever variable `engine.apiKeyEnv` names). |
 | `ROSETTA_MODEL` | Overrides `engine.model`. |
 | `ROSETTA_BASE_URL` | Overrides `engine.baseURL`. |
 | `CI` | Non-interactive mode; implies `--yes`. |
@@ -305,7 +308,7 @@ The GitHub Action covers the last three:
     mode: pull-request            # or: commit
     token: ${{ steps.app.outputs.token }}
   env:
-    ROSETTA_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 It stages only translation files and the lockfile. It lands the locales that
@@ -345,7 +348,7 @@ The step-by-step guide is [`docs/migrating-from-lingo.md`](docs/migrating-from-l
 | `lingo pull` | not needed — `push` writes the files directly |
 | `lingo check` | `rosetta check` |
 | `lingo purge --locale` | `rosetta purge --locale` |
-| `LINGO_API_KEY` | `ROSETTA_API_KEY` — your model provider's key |
+| `LINGO_API_KEY` | none: your model provider's key (`OPENROUTER_API_KEY`) |
 
 Rosetta v1 supports JSON and JSONC; other formats are skipped on import with a
 warning. Markdown/MDX support is tracked in

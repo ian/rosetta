@@ -80,7 +80,7 @@ Edit the source language, run `push` (or let CI or an agent run it), and commit 
   "engine": {
     "model": "z-ai/glm-5.3-flash",
     "baseURL": "https://openrouter.ai/api/v1",
-    "apiKeyEnv": "ROSETTA_API_KEY",
+    "apiKeyEnv": "OPENROUTER_API_KEY",
     "temperature": 0.3,
     "brandVoice": { "*": "voice/_default.md", "ja": "Polite, concise (です/ます)." },
     "rules": ["Never translate product names Jot, Quip, Notion."],
@@ -103,7 +103,7 @@ Edit the source language, run `push` (or let CI or an agent run it), and commit 
 | `files[].lockedKeys` / `preservedKeys` / `ignoredKeys` | no | Key globs. See §8. |
 | `engine.model` | for `push` | `ROSETTA_MODEL` overrides it. `check`, `status`, and `purge` work without it. |
 | `engine.baseURL` | no | Any OpenAI-compatible endpoint. Defaults to OpenRouter. `ROSETTA_BASE_URL` overrides it. |
-| `engine.apiKeyEnv` | no | Name of the environment variable holding the key. Defaults to `ROSETTA_API_KEY`, then falls back to `OPENROUTER_API_KEY`. |
+| `engine.apiKeyEnv` | no | Name of the environment variable holding the key. Defaults to `OPENROUTER_API_KEY`. This is your model provider's key; Rosetta has no service or account of its own. |
 | `engine.temperature` | no | Default `0.3`. |
 | `engine.brandVoice` | no | Map from locale to text, or to a `.md`/`.txt` path. The `*` entry is the fallback. |
 | `engine.rules` | no | A string or a list of strings, added to the prompt. |
@@ -305,7 +305,7 @@ Deprecated. It's kept for 0.x users and prints a warning to stderr. It will be r
 
 | Variable | Purpose |
 |---|---|
-| `ROSETTA_API_KEY` (or whatever `engine.apiKeyEnv` names) | Model API key. Falls back to `OPENROUTER_API_KEY`. |
+| `OPENROUTER_API_KEY` (or whatever `engine.apiKeyEnv` names) | Your model provider's API key. |
 | `ROSETTA_MODEL`, `ROSETTA_BASE_URL` | Override the engine's model and endpoint. |
 | `CI` | Makes Rosetta non-interactive (implies `--yes`). |
 

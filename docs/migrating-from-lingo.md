@@ -65,7 +65,7 @@ you're happy.
 | Lingo.dev GitHub App (translation PRs) | `uses: ian/rosetta@v1` with `mode: pull-request` ([delivery guide](./delivery.md)) |
 | `lingo push` + commit in your own runner | `uses: ian/rosetta@v1` with `mode: commit`, or `npx rosetta push` + your own commit step |
 | `lingo check` | `rosetta check`, or the Action with `mode: check`; no secret needed |
-| `LINGO_API_KEY` | `ROSETTA_API_KEY` (or `OPENROUTER_API_KEY`): your model provider's key |
+| `LINGO_API_KEY` | none: your model provider's key (`OPENROUTER_API_KEY`, or the variable named by `engine.apiKeyEnv`) |
 
 ## Command and flag reference
 
@@ -80,7 +80,7 @@ you're happy.
 | `lingo pull` | not needed | `rosetta pull` exists and prints an explanation. |
 | `lingo check` | `rosetta check` | Also validates placeholders, ICU, and tags. |
 | `lingo purge --locale fr` | `rosetta purge --locale fr` | |
-| `lingo login` / `logout` / `whoami` | not needed | Set `ROSETTA_API_KEY`. |
+| `lingo login` / `logout` / `whoami` | not needed | There's no account. Set your provider's key (`OPENROUTER_API_KEY`). |
 
 ## Behavior differences
 

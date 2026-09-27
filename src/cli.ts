@@ -210,7 +210,8 @@ Global options:
 
 Exit codes: 0 ok · 1 translation failed · 2 usage/config error · 3 stale (check)
 
-Environment: ROSETTA_API_KEY (or OPENROUTER_API_KEY), ROSETTA_MODEL, ROSETTA_BASE_URL, CI
+Environment: OPENROUTER_API_KEY (your model provider's key; see engine.apiKeyEnv),
+             ROSETTA_MODEL, ROSETTA_BASE_URL, CI
 Docs: https://github.com/ian/rosetta`,
 	init: `rosetta init [options]
 
@@ -404,7 +405,7 @@ async function cmdInit(ctx: Context): Promise<number> {
 	} else if (!ctx.quiet) {
 		io.stdout(`\n✓ Wrote ${ROSETTA_DIR}/${CONFIG_FILE}`);
 		io.stdout(
-			"\nNext:\n  1. Set ROSETTA_API_KEY (or OPENROUTER_API_KEY) and review `engine` (model, brandVoice, rules)\n  2. rosetta push     # existing translations are adopted, not re-translated\n  3. Commit .rosetta/ and the translated files",
+			"\nNext:\n  1. Set OPENROUTER_API_KEY (your model provider's key) and review `engine` (model, brandVoice, rules)\n  2. rosetta push     # existing translations are adopted, not re-translated\n  3. Commit .rosetta/ and the translated files",
 		);
 	}
 	return EXIT.ok;
