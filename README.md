@@ -611,7 +611,8 @@ export function App({ locale, children }: { locale: string; children: React.Reac
 
 Hooks: `useLocale()`, `useLocales()`, `useLocaleSwitch()`, `useLocaleContext()`.
 `switchTo(locale)` writes the cookie and navigates (full page by default; pass
-`navigate` to hook a router, `persist` to save server-side).
+`navigate` to hook a router, `persist` to save server-side). Navigation does not
+wait for `persist`, so `persist` must survive the page unloading — see below.
 
 ### Next.js (App Router)
 
@@ -641,8 +642,78 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```
 
 `RosettaProvider` reads the locale the middleware forced (`getServerLocale(config)`)
-and provides it to the client. Persist the choice for signed-in users with a server
-action:
+and provides it to the client. `RosettaProvider` itself takes no `persist`; to save
+the choice for signed-in users, resolve the locale yourself and render
+`LocaleProvider` with a keepalive request:
+
+```tsx
+// components/locale-persist.tsx
+"use client";
+import { LocaleProvider } from "rosetta-i18n/react";
+import { localeConfig } from "@/i18n/config";
+
+// The switch navigates immediately, so the save must survive the unload:
+// `keepalive` lets the request outlive the page. Skip it when signed out.
+function persistLocale(locale: string): Promise<void> {
+	return fetch("/api/me", {
+		method: "PATCH",
+		keepalive: true,
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ locale }),
+	}).then(
+		() => undefined,
+		() => undefined,
+	);
+}
+
+export function LocalePersist({
+	locale,
+	signedIn,
+	children,
+}: {
+	locale: string;
+	signedIn: boolean;
+	children: React.ReactNode;
+}) {
+	return (
+		<LocaleProvider
+			config={localeConfig}
+			locale={locale}
+			persist={signedIn ? persistLocale : undefined}
+		>
+			{children}
+		</LocaleProvider>
+	);
+}
+```
+
+Use it in the layout in place of `RosettaProvider`, passing the resolved locale:
+
+```tsx
+// app/layout.tsx
+import { getServerLocale } from "rosetta-i18n/next";
+import { LocalePersist } from "@/components/locale-persist";
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const locale = await getServerLocale(localeConfig);
+	const signedIn = /* your session check */ false;
+	return (
+		<html>
+			<body>
+				<LocalePersist locale={locale} signedIn={signedIn}>
+					{children}
+				</LocalePersist>
+			</body>
+		</html>
+	);
+}
+```
+
+Do **not** pass a server action as `persist`. The navigation aborts it, so the
+account is often never updated, and the aborted response rejects.
+
+For a settings screen where the user stays on the page, `createSetLocaleAction`
+is the right tool — `await` it and refresh once it resolves:
 
 ```ts
 // app/locale-actions.ts

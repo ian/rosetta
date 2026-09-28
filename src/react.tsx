@@ -45,7 +45,11 @@ export interface LocaleProviderProps {
 	navigate?: (href: string) => void;
 	/**
 	 * Persist the choice server-side (the cookie is already written). Use for
-	 * signed-in users, e.g. a server action that stores the locale.
+	 * signed-in users. Because `switchTo` navigates immediately and does NOT
+	 * wait for this to settle, `persist` must survive the page unloading: send
+	 * the locale with `fetch(url, { keepalive: true })` or `navigator.sendBeacon`.
+	 * Do not pass a server action — it is aborted when the page navigates, and a
+	 * rejected save would otherwise surface as an unhandled rejection.
 	 */
 	persist?: (locale: string) => void | Promise<void>;
 	children: ReactNode;
@@ -73,7 +77,14 @@ export function LocaleProvider({
 	persist,
 	children,
 }: LocaleProviderProps) {
-	const [pending, setPending] = useState(false);
+	const [pendingLocale, setPendingLocale] = useState<string | null>(null);
+	const pending = pendingLocale !== null;
+	// Keyed to the target locale so it clears the moment the new locale lands: a
+	// router-based `navigate` rerenders the provider with the new `locale`, while
+	// the default `location.assign` unloads the page first and never needs it.
+	if (pendingLocale !== null && pendingLocale === locale) {
+		setPendingLocale(null);
+	}
 
 	const switchTo = useCallback(
 		(next: string) => {
@@ -82,12 +93,15 @@ export function LocaleProvider({
 				typeof window === "undefined" ? "/" : window.location.pathname;
 			const plan = planSwitch(config, pathname, next);
 			if (!plan) return; // current path has no localized variant
-			setPending(true);
+			setPendingLocale(next);
 			writeCookie(plan.cookie.name, plan.cookie.value, plan.cookie.options);
-			try {
-				void persist?.(next);
-			} catch {
-				/* persistence is best-effort */
+			// Best-effort and never awaited: catches a synchronous throw AND a
+			// rejected promise, so a failed save can't surface as an unhandled
+			// rejection. Navigation must not wait on it (see the `persist` docs).
+			if (persist) {
+				Promise.resolve()
+					.then(() => persist(next))
+					.catch(() => {});
 			}
 			(navigate ?? defaultNavigate)(plan.href);
 		},
@@ -131,7 +145,7 @@ export function useLocales(): readonly string[] {
 	return useLocaleContext().config.locales;
 }
 
-/** `[locale, switchTo]` — the switcher primitive. */
+/** The switcher primitive: `switchTo(locale)` writes the cookie and navigates. */
 export function useLocaleSwitch(): (locale: string) => void {
 	return useLocaleContext().switchTo;
 }
