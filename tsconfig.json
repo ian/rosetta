@@ -9,9 +9,14 @@
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true,
+		"jsx": "react-jsx",
 		"declaration": true,
 		"noEmit": true,
-		"types": ["node"]
+		"types": ["node"],
+		"baseUrl": ".",
+		"paths": {
+			"rosetta-i18n/react": ["./src/react.tsx"]
+		}
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules", "dist"]

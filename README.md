@@ -34,6 +34,7 @@ npx rosetta check     # CI gate: fails if anything is stale or broken (no API ke
 - [Coming from Lingo.dev](#coming-from-lingodev)
 - [Library API](#library-api)
 - [React & Next.js](#react--nextjs)
+- [Locale routing & cookies](#locale-routing--cookies)
 - [Development](#development)
 
 ## Quick start
@@ -554,6 +555,119 @@ the route handler or Server Action above.
 > runtime as long as your endpoint does. The main `rosetta-i18n` entry also exports the
 > Node-only workflow (`push`, `check`, …, which read and write files), so prefer the
 > `next` entrypoint in edge code.
+
+## Locale routing & cookies
+
+Translating strings is half the job. Knowing *which* locale a request is in — and
+switching cleanly — is the other half, and it's where most apps hand-roll fragile
+middleware, server actions, and `router.refresh()` races. Rosetta ships the runtime
+layer too: `rosetta-i18n/locale` (core), `/react`, `/next`, `/astro`.
+
+The model is one-directional and needs no client-side guessing:
+
+1. a **locale-prefixed URL** (`/ja/pricing`) is authoritative,
+2. then a **forced header** (`x-rosetta-locale`, set by middleware),
+3. then the **cookie**,
+4. then the **default locale**.
+
+**Switching writes the cookie and navigates to the localized URL**, so the URL and the
+cookie always agree. A full-page navigation makes it a single request with no
+refresh-after-push race.
+
+### Config (plain data)
+
+```ts
+// i18n/config.ts
+import type { LocaleConfig } from "rosetta-i18n/locale";
+
+export const localeConfig: LocaleConfig = {
+	locales: ["en", "ja", "de", "es"],
+	defaultLocale: "en",
+	// Only these paths have localized variants; everything else stays bare.
+	localizedPaths: ["/", "/pricing", "/agents"],
+	localizedPathPrefixes: ["/blog/", "/help/", "/vs/"],
+};
+```
+
+The core also exports the pure helpers (`resolveLocale`, `stripLocale`, `localizePath`,
+`planSwitch`, `serializeLocaleCookie`, …) if you're wiring your own framework.
+
+### React
+
+```tsx
+"use client";
+import { LocaleProvider, LocaleSwitcher } from "rosetta-i18n/react";
+
+export function App({ locale, children }: { locale: string; children: React.ReactNode }) {
+	return (
+		<LocaleProvider config={localeConfig} locale={locale}>
+			{/* or render={({ locales, locale, switchTo, labelFor }) => …} */}
+			<LocaleSwitcher />
+			{children}
+		</LocaleProvider>
+	);
+}
+```
+
+Hooks: `useLocale()`, `useLocales()`, `useLocaleSwitch()`, `useLocaleContext()`.
+`switchTo(locale)` writes the cookie and navigates (full page by default; pass
+`navigate` to hook a router, `persist` to save server-side).
+
+### Next.js (App Router)
+
+```ts
+// middleware.ts
+import { createLocaleMiddleware } from "rosetta-i18n/next";
+import { localeConfig } from "./i18n/config";
+
+export const middleware = createLocaleMiddleware(localeConfig);
+export const config = { matcher: ["/((?!_next|favicon.ico|.*\\..*).*)"] };
+```
+
+```tsx
+// app/layout.tsx
+import { RosettaProvider } from "rosetta-i18n/next";
+import { localeConfig } from "@/i18n/config";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+	return (
+		<html>
+			<body>
+				<RosettaProvider config={localeConfig}>{children}</RosettaProvider>
+			</body>
+		</html>
+	);
+}
+```
+
+`RosettaProvider` reads the locale the middleware forced (`getServerLocale(config)`)
+and provides it to the client. Persist the choice for signed-in users with a server
+action:
+
+```ts
+// app/locale-actions.ts
+"use server";
+import { createSetLocaleAction } from "rosetta-i18n/next";
+import { localeConfig } from "@/i18n/config";
+
+export const setLocale = createSetLocaleAction(localeConfig, {
+	persist: (locale) => updateUserProfile(userId, { locale }),
+});
+```
+
+### Astro
+
+```ts
+// src/middleware.ts
+import { createAstroLocaleMiddleware } from "rosetta-i18n/astro";
+import { localeConfig } from "../i18n/config";
+
+export const onRequest = createAstroLocaleMiddleware(localeConfig);
+```
+
+The middleware sets `Astro.locals.locale` (read it with `getAstroLocale(Astro, config)`)
+and rewrites prefixed URLs. For a switcher, render the React `<LocaleSwitcher>` as an
+island wrapped in `<LocaleProvider locale={Astro.locals.locale} config={localeConfig}>`.
 
 ## Legacy `translate-catalog`
 
