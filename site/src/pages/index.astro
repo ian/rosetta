@@ -22,6 +22,7 @@ if (!agentPrompt) {
 const repo = "https://github.com/ian/rosetta";
 const skillUrl = "https://raw.githubusercontent.com/ian/rosetta/main/skills/rosetta/SKILL.md";
 const install = pkg.version.includes("-") ? "rosetta-i18n@next" : "rosetta-i18n";
+const skillInstall = `mkdir -p .claude/skills/rosetta && curl -fsSL ${skillUrl} -o .claude/skills/rosetta/SKILL.md`;
 
 const title = "Rosetta: a free, open-source alternative to Lingo.dev";
 const description =
@@ -139,8 +140,7 @@ const configExample = `{
   }
 }`;
 
-const workflowExample = `# .github/workflows/i18n.yml
-on:
+const workflowExample = `on:
   pull_request:
   push: { branches: [main] }
 jobs:
@@ -274,110 +274,140 @@ const faq = [
 		<section class="wrap" id="get-started">
 			<h2>Get started</h2>
 			<p class="muted">
-				Requires Node 20+. Works with any JSON/JSONC locale files (next-intl, i18next, vue-i18n, …). Prefer to
-				hand it off? Your <a href="#agent">AI agent can do all of this</a>.
+				Works with any JSON/JSONC locale files (next-intl, i18next, vue-i18n, …) and Node 20+. Hand it to your
+				coding agent, or set it up yourself in a few minutes.
 			</p>
 
-			<ol class="steps">
-				<li>
-					<div class="step-text">
-						<h3>Install</h3>
-						<p>Add Rosetta as a dev dependency. The package is <code>rosetta-i18n</code>, and it installs a
-							<code>rosetta</code> command.</p>
+			<div class="tabs" data-tabs>
+				<div class="tablist" role="tablist" aria-label="How to get started">
+					<button type="button" role="tab" id="tab-agents" aria-controls="panel-agents" aria-selected="true" data-tab="agents">
+						Agents <span class="tab-hint">one prompt</span>
+					</button>
+					<button type="button" role="tab" id="tab-manual" aria-controls="panel-manual" aria-selected="false" tabindex="-1" data-tab="manual">
+						Manual <span class="tab-hint">six steps</span>
+					</button>
+				</div>
+
+				<div class="tabpanel" role="tabpanel" id="panel-agents" aria-labelledby="tab-agents" tabindex="0">
+					<p class="panel-lede">
+						Paste this into Claude Code, Cursor, Codex, or opencode from your project root. Your agent reads the
+						Rosetta skill and does the whole setup, then opens one PR for you to review.
+					</p>
+					<div class="prompt">
+						<CopyButton target="agent-prompt" variant="ghost" class="prompt-copy" label="Copy" />
+						<pre id="agent-prompt">{agentPrompt}</pre>
 					</div>
+
+					<h3 class="sub">What your agent will do</h3>
+					<ol class="agent-steps">
+						<li><strong>Discover.</strong> Finds your i18n runtime, locale files, locale list, and current translation setup, then reports back.</li>
+						<li><strong>Configure.</strong> Writes <code>.rosetta/config.json</code> and carries over your brand voice, context, and do-not-translate terms.</li>
+						<li><strong>Adopt.</strong> Records your existing translations for free, and lists any that are broken today.</li>
+						<li><strong>Guard.</strong> Adds tests that keep the config in sync with your app's locale list.</li>
+						<li><strong>Wire up CI.</strong> Keeps your existing flow, or proposes <code>check</code>, commit, or PR mode.</li>
+						<li><strong>Clean up.</strong> Removes the old tooling, documents the workflow in <code>AGENTS.md</code>, and opens one PR.</li>
+					</ol>
+					<p class="muted small">It asks before anything expensive: <code>push --force</code>, large translation runs, or choosing how translations land.</p>
+
+					<h3 class="sub">Keep your agent fluent</h3>
+					<p class="muted small">
+						Install the <a href={skillUrl}>Rosetta skill</a> so everyday requests ("add a German string", "why is the
+						i18n job red?") just work. For agents that can't fetch URLs, use the{" "}
+						<a href={`${repo}/blob/main/docs/agent-prompt.md`}>self-contained prompt</a>.
+					</p>
 					<div class="code">
-						<CopyButton text={`npm install -D ${install}`} variant="inline" label="Copy install command" />
-						<pre><code>npm install -D {install}</code></pre>
+						<CopyButton text={skillInstall} variant="inline" label="Copy skill install command" />
+						<pre><code><span class="c"># Claude Code (other agents: see docs/agent-prompt.md)</span>
+{skillInstall}</code></pre>
 					</div>
-				</li>
-				<li>
-					<div class="step-text">
-						<h3>Create the config</h3>
-						<p>
-							<code>init</code> finds your source files (<code>messages/en.json</code>,
-							<code>locales/en/*.json</code>, <code>pages.en.json</code>, …), infers target locales from the
-							files next to them, and writes <code>.rosetta/config.json</code>. Coming from Lingo.dev? Use
-							<code>--from-lingo</code>.
-						</p>
-					</div>
-					<div class="code">
-						<CopyButton text="npx rosetta init" variant="inline" label="Copy init command" />
-						<pre><code>npx rosetta init
+				</div>
+
+				<div class="tabpanel" role="tabpanel" id="panel-manual" aria-labelledby="tab-manual" tabindex="0" hidden>
+					<ol class="steps">
+						<li>
+							<div class="step-text">
+								<h3>Install</h3>
+								<p>Add Rosetta as a dev dependency. The package is <code>rosetta-i18n</code>, and it installs a
+									<code>rosetta</code> command.</p>
+							</div>
+							<div class="code">
+								<CopyButton text={`npm install -D ${install}`} variant="inline" label="Copy install command" />
+								<pre><code>npm install -D {install}</code></pre>
+							</div>
+						</li>
+						<li>
+							<div class="step-text">
+								<h3>Create the config</h3>
+								<p>
+									<code>init</code> finds your source files (<code>messages/en.json</code>,
+									<code>locales/en/*.json</code>, <code>pages.en.json</code>, …), infers target locales from the
+									files next to them, and writes <code>.rosetta/config.json</code>. Coming from Lingo.dev? Use
+									<code>--from-lingo</code>.
+								</p>
+							</div>
+							<div class="code">
+								<CopyButton text="npx rosetta init" variant="inline" label="Copy init command" />
+								<pre><code>npx rosetta init
 <span class="c"># or: npx rosetta init --pattern messages/en.json --target es,fr,de</span>
 <span class="c"># or: npx rosetta init --from-lingo</span></code></pre>
-					</div>
-				</li>
-				<li>
-					<div class="step-text">
-						<h3>Tune the engine</h3>
-						<p>
-							Pick a model and give it your brand voice and never-translate terms. Add <code>lockedKeys</code>
-							for anything that must stay identical (URLs, prices), and a <code>context</code> per file.
-						</p>
-					</div>
-					<div class="code">
-						<span class="file">.rosetta/config.json</span>
-						<pre><code>{configExample}</code></pre>
-					</div>
-				</li>
-				<li>
-					<div class="step-text">
-						<h3>Add your model key</h3>
-						<p>
-							Rosetta has no key of its own. Use your OpenRouter key, or point <code>engine.baseURL</code> at
-							any OpenAI-compatible endpoint and set <code>engine.apiKeyEnv</code> to its variable.
-						</p>
-					</div>
-					<div class="code">
-						<pre><code>export OPENROUTER_API_KEY=sk-or-...</code></pre>
-					</div>
-				</li>
-				<li>
-					<div class="step-text">
-						<h3>Preview, then push</h3>
-						<p>
-							<code>status</code> shows what would happen, with no key and no cost. The first <code>push</code>
-							adopts your existing translations for free and translates only what's missing, changed, or broken.
-						</p>
-					</div>
-					<div class="code">
-						<CopyButton text="npx rosetta status && npx rosetta push" variant="inline" label="Copy commands" />
-						<pre><code>npx rosetta status   <span class="c"># es  3 to translate · 412 to adopt</span>
+							</div>
+						</li>
+						<li>
+							<div class="step-text">
+								<h3>Tune the engine</h3>
+								<p>
+									Pick a model and give it your brand voice and never-translate terms. Add <code>lockedKeys</code>
+									for anything that must stay identical (URLs, prices), and a <code>context</code> per file.
+								</p>
+							</div>
+							<div class="code">
+								<span class="file">.rosetta/config.json</span>
+								<pre><code>{configExample}</code></pre>
+							</div>
+						</li>
+						<li>
+							<div class="step-text">
+								<h3>Add your model key</h3>
+								<p>
+									Rosetta has no key of its own. Use your OpenRouter key, or point <code>engine.baseURL</code> at
+									any OpenAI-compatible endpoint and set <code>engine.apiKeyEnv</code> to its variable.
+								</p>
+							</div>
+							<div class="code">
+								<pre><code>export OPENROUTER_API_KEY=sk-or-...</code></pre>
+							</div>
+						</li>
+						<li>
+							<div class="step-text">
+								<h3>Preview, then push</h3>
+								<p>
+									<code>status</code> shows what would happen, with no key and no cost. The first <code>push</code>
+									adopts your existing translations for free and translates only what's missing, changed, or broken.
+								</p>
+							</div>
+							<div class="code">
+								<CopyButton text="npx rosetta status && npx rosetta push" variant="inline" label="Copy commands" />
+								<pre><code>npx rosetta status   <span class="c"># es  3 to translate · 412 to adopt</span>
 npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json</span></code></pre>
-					</div>
-				</li>
-				<li>
-					<div class="step-text">
-						<h3>Commit, then keep it in sync</h3>
-						<p>
-							Commit <code>.rosetta/</code> with your locale files. From then on it's
-							<strong>edit English → push → commit</strong>, run yourself, by an agent, or by the GitHub Action.
-						</p>
-					</div>
-					<div class="code">
-						<span class="file">.github/workflows/i18n.yml</span>
-						<pre><code>{workflowExample}</code></pre>
-					</div>
-				</li>
-			</ol>
-		</section>
-
-		<section class="wrap" id="agent">
-			<h2>Or let your AI agent set it up</h2>
-			<p class="muted">
-				This prompt has your agent find your locale files and current setup, configure Rosetta, adopt your existing
-				translations, report any that are broken today, wire up CI, and open one PR. It checks with you before
-				anything expensive.
-			</p>
-			<div class="prompt">
-				<CopyButton target="agent-prompt" variant="ghost" class="prompt-copy" label="Copy" />
-				<pre id="agent-prompt">{agentPrompt}</pre>
+							</div>
+						</li>
+						<li>
+							<div class="step-text">
+								<h3>Commit, then keep it in sync</h3>
+								<p>
+									Commit <code>.rosetta/</code> with your locale files. From then on it's{" "}
+									<strong>edit English → push → commit</strong>, run yourself, by an agent, or by the GitHub Action.
+								</p>
+							</div>
+							<div class="code">
+								<span class="file">.github/workflows/i18n.yml</span>
+								<pre><code>{workflowExample}</code></pre>
+							</div>
+						</li>
+					</ol>
+				</div>
 			</div>
-			<p class="muted small">
-				For everyday requests ("add a German string", "why is the i18n job red?"), install the{" "}
-				<a href={skillUrl}>Rosetta skill</a>. For agents that can't fetch URLs, use the{" "}
-				<a href={`${repo}/blob/main/docs/agent-prompt.md`}>self-contained prompt</a>.
-			</p>
+			<noscript><style>.tabpanel[hidden] { display: block; } .tablist { display: none; }</style></noscript>
 		</section>
 
 		<section class="wrap">
@@ -433,6 +463,45 @@ npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json<
 		<a href="https://www.npmjs.com/package/rosetta-i18n">npm</a>
 	</footer>
 </Base>
+
+<script>
+	for (const tabs of document.querySelectorAll<HTMLElement>("[data-tabs]")) {
+		const buttons = [...tabs.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+
+		const select = (name: string, focus = false) => {
+			for (const button of buttons) {
+				const active = button.dataset.tab === name;
+				button.setAttribute("aria-selected", String(active));
+				button.tabIndex = active ? 0 : -1;
+				const panel = document.getElementById(button.getAttribute("aria-controls") ?? "");
+				if (panel) panel.hidden = !active;
+				if (active && focus) button.focus();
+			}
+		};
+
+		buttons.forEach((button, i) => {
+			button.addEventListener("click", () => select(button.dataset.tab ?? ""));
+			button.addEventListener("keydown", (event) => {
+				const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+				if (!step) return;
+				event.preventDefault();
+				const next = buttons[(i + step + buttons.length) % buttons.length];
+				select(next.dataset.tab ?? "", true);
+			});
+		});
+
+		// Deep links: #agents / #manual open that tab and scroll to the section.
+		const fromHash = () => {
+			const name = location.hash.slice(1);
+			if (buttons.some((button) => button.dataset.tab === name)) {
+				select(name);
+				tabs.closest("section")?.scrollIntoView();
+			}
+		};
+		window.addEventListener("hashchange", fromHash);
+		fromHash();
+	}
+</script>
 
 <style>
 	.wrap {
@@ -610,12 +679,108 @@ npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json<
 		color: var(--accent);
 	}
 
+	/* Tabs */
+	.tabs {
+		margin-top: 1.75rem;
+	}
+	.tablist {
+		display: inline-flex;
+		gap: 0.25rem;
+		padding: 0.3rem;
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-radius: 0.65rem;
+	}
+	[role="tab"] {
+		font: inherit;
+		font-weight: 600;
+		color: var(--muted);
+		background: transparent;
+		border: 0;
+		border-radius: 0.45rem;
+		padding: 0.55rem 1.1rem;
+		cursor: pointer;
+		transition:
+			background 0.15s,
+			color 0.15s;
+	}
+	[role="tab"]:hover {
+		color: var(--fg);
+	}
+	[role="tab"][aria-selected="true"] {
+		background: var(--accent);
+		color: #111827;
+	}
+	[role="tab"]:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.tab-hint {
+		font-weight: 500;
+		font-size: 0.8rem;
+		opacity: 0.75;
+		margin-left: 0.35rem;
+	}
+	.tabpanel {
+		padding-top: 1.75rem;
+	}
+	.tabpanel:focus-visible {
+		outline: none;
+	}
+	.panel-lede {
+		margin: 0;
+		color: var(--muted);
+		max-width: 48rem;
+	}
+	.sub {
+		margin: 2rem 0 0.25rem;
+	}
+	.agent-steps {
+		counter-reset: agent;
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0 0.75rem;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: 0.75rem 1.5rem;
+	}
+	.agent-steps li {
+		counter-increment: agent;
+		position: relative;
+		padding-left: 2.2rem;
+		color: var(--muted);
+	}
+	.agent-steps li::before {
+		content: counter(agent);
+		position: absolute;
+		left: 0;
+		top: 0.1rem;
+		display: grid;
+		place-items: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 50%;
+		border: 1px solid var(--accent);
+		color: var(--accent);
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+	.agent-steps strong {
+		color: var(--fg);
+	}
+	.tabpanel .code {
+		margin-top: 0.75rem;
+	}
+	.steps li .code {
+		margin-top: 0;
+	}
+
 	/* Steps */
 	.steps {
 		list-style: none;
 		counter-reset: step;
 		padding: 0;
-		margin: 2rem 0 0;
+		margin: 0;
 		display: grid;
 		gap: 1.5rem;
 	}
@@ -657,6 +822,7 @@ npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json<
 	}
 	.code pre {
 		margin: 0;
+		padding-right: 1.75rem;
 		overflow-x: auto;
 		font-size: 0.84rem;
 		line-height: 1.55;
