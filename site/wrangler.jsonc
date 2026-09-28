@@ -1,0 +1,8 @@
+// Cloudflare Pages project config, used by `pnpm pages:deploy` (wrangler pages deploy).
+// For Git-connected deploys, set these in the dashboard instead:
+//   root directory: site · build command: pnpm install && pnpm build · output: dist
+{
+  "name": "rosetta",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-01"
+}

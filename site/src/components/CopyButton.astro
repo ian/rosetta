@@ -1,0 +1,153 @@
+---
+// A reusable copy-to-clipboard button with a "Copied" tooltip.
+// Copies `text`, or the text content of the element with id `target`.
+interface Props {
+	text?: string;
+	target?: string;
+	label?: string;
+	variant?: "primary" | "ghost" | "inline";
+	class?: string;
+}
+const { text, target, label = "Copy", variant = "ghost", class: className = "" } = Astro.props;
+---
+
+<button
+	type="button"
+	class:list={["copy-btn", variant, className]}
+	data-copy-text={text}
+	data-copy-target={target}
+	aria-label={label}
+>
+	<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<rect x="9" y="9" width="13" height="13" rx="2"></rect>
+		<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+	</svg>
+	<span class="label"><slot>{label}</slot></span>
+	<span class="tip" role="status" aria-live="polite"></span>
+</button>
+
+<script>
+	async function copy(text: string): Promise<boolean> {
+		try {
+			await navigator.clipboard.writeText(text);
+			return true;
+		} catch {
+			// Fallback for non-secure contexts / older browsers.
+			const area = document.createElement("textarea");
+			area.value = text;
+			area.setAttribute("readonly", "");
+			area.style.position = "fixed";
+			area.style.opacity = "0";
+			document.body.appendChild(area);
+			area.select();
+			const ok = document.execCommand("copy");
+			area.remove();
+			return ok;
+		}
+	}
+
+	for (const button of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		button.addEventListener("click", async () => {
+			const { copyText, copyTarget } = button.dataset;
+			const text = copyText ?? (copyTarget ? document.getElementById(copyTarget)?.textContent : "") ?? "";
+			const ok = await copy(text.trim());
+			const tip = button.querySelector<HTMLElement>(".tip");
+			if (!tip) return;
+			tip.textContent = ok ? "Copied!" : "Press ⌘C / Ctrl+C to copy";
+			button.classList.add("copied");
+			clearTimeout(timer);
+			timer = setTimeout(() => {
+				button.classList.remove("copied");
+				tip.textContent = "";
+			}, 1800);
+		});
+	}
+</script>
+
+<style>
+	.copy-btn {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		border-radius: 0.5rem;
+		transition:
+			background 0.15s,
+			border-color 0.15s,
+			transform 0.1s;
+	}
+	.copy-btn:active {
+		transform: translateY(1px);
+	}
+	.copy-btn.primary {
+		background: var(--accent);
+		border: 1px solid var(--accent);
+		color: #111827;
+		padding: 0.75rem 1.2rem;
+		font-size: 1rem;
+	}
+	.copy-btn.primary:hover {
+		filter: brightness(1.08);
+	}
+	.copy-btn.ghost {
+		background: #1e293b;
+		color: var(--code-fg);
+		border: 1px solid #334155;
+		padding: 0.3rem 0.7rem;
+		font-size: 0.8rem;
+	}
+	.copy-btn.ghost:hover {
+		background: #334155;
+	}
+	.copy-btn.inline {
+		background: transparent;
+		border: 0;
+		color: #94a3b8;
+		padding: 0.25rem;
+	}
+	.copy-btn.inline:hover {
+		color: var(--code-fg);
+	}
+	.copy-btn.inline .label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+	.tip {
+		position: absolute;
+		left: 50%;
+		bottom: calc(100% + 0.5rem);
+		transform: translate(-50%, 0.25rem);
+		background: var(--fg);
+		color: var(--bg);
+		font-size: 0.8rem;
+		font-weight: 600;
+		white-space: nowrap;
+		padding: 0.3rem 0.6rem;
+		border-radius: 0.4rem;
+		opacity: 0;
+		pointer-events: none;
+		transition:
+			opacity 0.15s,
+			transform 0.15s;
+	}
+	.tip::after {
+		content: "";
+		position: absolute;
+		top: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+		border: 5px solid transparent;
+		border-top-color: var(--fg);
+	}
+	.copy-btn.copied .tip {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+</style>

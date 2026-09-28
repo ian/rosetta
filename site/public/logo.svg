@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1408 1408" width="1408" height="1408">
+  <!-- Stone body -->
+  <defs><path id="stone"
+    d="M345 545
+       C380 450 440 390 520 340
+       C640 280 800 235 930 215
+       C960 212 975 222 990 245
+       L1105 460
+       C1125 490 1132 505 1132 540
+       L1135 1125
+       C1135 1160 1115 1182 1080 1182
+       L320 1185
+       C292 1185 280 1165 284 1140
+       L292 1060 L298 1020 L294 975 L305 900
+       L318 780 L322 660 L330 590
+       C332 565 336 555 345 545 Z"/></defs>
+  <use href="#stone" fill="#9e988e"/>
+
+  <!-- Right-side shading -->
+  <path d="M1105 460 C1125 490 1132 505 1132 540 L1135 1125
+           C1135 1160 1115 1182 1080 1182 L880 1184
+           C980 1140 1060 1110 1070 1060 L1075 560
+           C1075 520 1060 495 1040 470 Z"
+        fill="#6f6861"/>
+
+  <!-- Top / left highlight rim -->
+  <path d="M355 560 C390 460 450 400 530 350 C650 290 800 248 930 228
+           C950 226 958 232 965 245 L960 262
+           C830 272 680 318 560 375 C470 420 410 480 378 560
+           L360 700 L352 850 L340 980 L330 1120 L310 1150
+           L302 1060 L310 1000 L318 900 L330 780 L335 660 Z"
+        fill="#eee4d9"/>
+
+  <!-- Chip at top right -->
+  <path d="M935 368 L962 262 L1000 318 Z" fill="#6f6861"/>
+  <path d="M935 368 L1000 318 L985 300 Z" fill="#eee4d9"/>
+
+  <!-- Crack at bottom -->
+  <path d="M482 1155 L505 1120 L555 1112 L512 1130 Z" fill="#5b544e"/>
+
+  <!-- Stone outline -->
+  <use href="#stone" fill="none" stroke="#0e0c0c" stroke-width="28" stroke-linejoin="round"/>
+
+  <!-- Glyphs -->
+  <g stroke="#0e0c0c" stroke-width="19" stroke-linecap="round" stroke-linejoin="round" fill="#f3e9df">
+
+    <!-- Eye of Horus -->
+    <path d="M428 472 Q520 440 606 468" fill="none" stroke-width="18"/>
+    <path d="M422 510 Q515 460 602 512 Q515 548 422 510 Z"/>
+    <circle cx="510" cy="508" r="21" fill="#0e0c0c" stroke="none"/>
+    <path d="M530 540 Q540 560 530 572 Q545 580 544 588" fill="none"/>
+
+    <!-- Seated figure -->
+    <path d="M642 568 L642 548 L715 540 L735 510 L735 470
+             Q722 458 728 440 L742 440 L738 425
+             Q740 385 770 385 Q795 390 795 420
+             L790 440 Q806 460 804 500 L800 570 Z"/>
+
+    <!-- Bird -->
+    <path d="M852 418 Q870 390 895 398 Q915 410 915 440
+             Q935 470 980 510 L1022 570
+             L960 556 Q925 555 900 525
+             Q878 490 885 440 Q872 425 852 418 Z"/>
+    <path d="M922 548 L912 572 M940 552 L942 572" fill="none"/>
+    <path d="M882 574 L964 574" fill="none"/>
+
+    <!-- Divider 1 -->
+    <path d="M407 615 L1020 615" fill="none" stroke-width="22"/>
+
+    <!-- Row 2 -->
+    <path d="M425 685 Q435 670 445 685 L440 835 Q435 845 430 835 Z"/>
+    <path d="M512 718 L512 698 L528 682 L540 698 L555 682 L568 698 L582 682 L595 698 L610 682 L622 698 L638 682 L638 718 Z"/>
+    <rect x="566" y="762" width="34" height="72" rx="4"/>
+    <path d="M680 800 L705 772 L730 800 Z" stroke-width="14"/>
+    <path d="M760 762 L760 832" fill="none"/>
+    <circle cx="782" cy="706" r="28"/>
+    <path d="M805 738 L805 832" fill="none"/>
+    <circle cx="955" cy="724" r="50"/>
+    <path d="M955 776 L955 832" fill="none"/>
+
+    <!-- Divider 2 -->
+    <path d="M407 878 L1020 878" fill="none" stroke-width="22"/>
+
+    <!-- Row 3 -->
+    <path d="M412 945 L412 1068 Q412 1082 428 1082 L470 1082" fill="none"/>
+    <path d="M638 1000 Q630 978 600 978 Q555 980 553 1030 Q555 1080 598 1080 Q625 1078 638 1045 L640 1000 L642 1082"
+          fill="none"/>
+    <path d="M722 1080 L775 955 L828 1080 Z" stroke-width="18"/>
+    <path d="M872 950 L1020 950 M955 950 L955 1048 Q955 1080 922 1082 L905 1082" fill="none"/>
+  </g>
+</svg>

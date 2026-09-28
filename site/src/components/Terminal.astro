@@ -1,0 +1,234 @@
+---
+// Animated terminal: types each command, then prints its output. The full
+// transcript is rendered as static HTML first, so it reads fine without JS
+// or with reduced motion. The script only replays it.
+import type { Line } from "./terminal";
+
+interface Props {
+	lines: Line[];
+	title?: string;
+}
+const { lines, title = "~/acme" } = Astro.props;
+---
+
+<div class="term" data-terminal>
+	<div class="bar">
+		<span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+		<span class="title">{title}</span>
+		<button type="button" class="replay" data-replay hidden>↻ Replay</button>
+	</div>
+	<div class="body" role="img" aria-label="Terminal demo: rosetta push, git diff, git commit, git push">
+		<div class="screen">
+		{
+			lines.map((line) =>
+				line.kind === "cmd" ? (
+					<div class="line cmd" data-kind="cmd" data-text={line.text}><span class="prompt">$ </span><span class="typed">{line.text}</span></div>
+				) : (
+					<div class:list={["line", "out", line.tone ?? "plain"]} data-kind="out">{line.text || " "}</div>
+				),
+			)
+		}
+		<div class="line cursor-line" data-cursor hidden><span class="prompt">$ </span><span class="cursor"></span></div>
+		</div>
+	</div>
+</div>
+
+<script>
+	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+	for (const term of document.querySelectorAll<HTMLElement>("[data-terminal]")) {
+		const lines = [...term.querySelectorAll<HTMLElement>(".line[data-kind]")];
+		const cursor = term.querySelector<HTMLElement>("[data-cursor]");
+		const replay = term.querySelector<HTMLButtonElement>("[data-replay]");
+		const body = term.querySelector<HTMLElement>(".body");
+		const screen = term.querySelector<HTMLElement>(".screen");
+
+		// Behave like a console: the newest line is always at the bottom and
+		// older lines scroll off the top. Runs on every change, including each
+		// typed character, so it never lags behind.
+		const pin = () => {
+			if (!body) return;
+			body.scrollTop = body.scrollHeight;
+			// Fade the top edge only once lines have scrolled off it.
+			body.classList.toggle("clipped", body.scrollTop > 0);
+		};
+		if (screen) new ResizeObserver(pin).observe(screen);
+		const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		let run = 0;
+
+		async function play(): Promise<void> {
+			const id = ++run;
+			if (replay) replay.hidden = true;
+			for (const line of lines) line.hidden = true;
+
+			for (const line of lines) {
+				if (id !== run) return;
+				if (line.dataset.kind === "cmd") {
+					const typed = line.querySelector<HTMLElement>(".typed");
+					const text = line.dataset.text ?? "";
+					if (cursor) cursor.hidden = true;
+					line.hidden = false;
+					line.classList.add("typing");
+					if (typed) typed.textContent = "";
+					await sleep(350);
+					for (const char of text) {
+						if (id !== run) return;
+						if (typed) typed.textContent += char;
+						await sleep(28 + Math.random() * 40);
+					}
+					line.classList.remove("typing");
+					await sleep(450);
+				} else {
+					line.hidden = false;
+					await sleep(line.classList.contains("dim") ? 60 : 110);
+				}
+			}
+			if (cursor) cursor.hidden = false;
+			if (replay) replay.hidden = false;
+		}
+
+		replay?.addEventListener("click", () => void play());
+
+		if (reduced) {
+			if (cursor) cursor.hidden = false;
+			pin();
+			if (replay) replay.hidden = false;
+			continue;
+		}
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((entry) => entry.isIntersecting)) {
+					observer.disconnect();
+					void play();
+				}
+			},
+			{ threshold: 0.3 },
+		);
+		observer.observe(term);
+	}
+</script>
+
+<style>
+	.term {
+		background: var(--code-bg);
+		color: var(--code-fg);
+		border: 1px solid #1e293b;
+		border-radius: 0.75rem;
+		overflow: hidden;
+		box-shadow: 0 20px 60px -20px rgb(0 0 0 / 0.5);
+	}
+	.bar {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 2.6rem;
+		padding: 0 0.9rem;
+		background: #0b1222;
+		border-bottom: 1px solid #1e293b;
+	}
+	.dot {
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 50%;
+	}
+	.r {
+		background: #ef4444;
+	}
+	.y {
+		background: #eab308;
+	}
+	.g {
+		background: #22c55e;
+	}
+	.title {
+		margin-left: 0.6rem;
+		color: #64748b;
+		font-size: 0.8rem;
+		font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+	}
+	.replay {
+		margin-left: auto;
+		background: transparent;
+		border: 1px solid #334155;
+		color: #94a3b8;
+		border-radius: 0.35rem;
+		font: inherit;
+		font-size: 0.75rem;
+		padding: 0.15rem 0.5rem;
+		cursor: pointer;
+	}
+	.replay:hover {
+		color: var(--code-fg);
+	}
+	.body {
+		margin: 0;
+		padding: 1rem 1.1rem 1.2rem;
+		height: 27rem;
+		overflow: hidden;
+		overscroll-behavior: none;
+		font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+		font-size: 0.82rem;
+		line-height: 1.55;
+	}
+	.body.clipped {
+		mask-image: linear-gradient(to bottom, transparent 0, #000 2.25rem);
+	}
+	.line {
+		white-space: pre;
+	}
+	.line[hidden] {
+		display: none;
+	}
+	.prompt {
+		color: var(--accent);
+		user-select: none;
+	}
+	.cmd {
+		color: #f8fafc;
+		margin-top: 0.35rem;
+	}
+	.cmd:first-child {
+		margin-top: 0;
+	}
+	.typing .typed::after,
+	.cursor {
+		display: inline-block;
+		width: 0.55em;
+		height: 1.05em;
+		vertical-align: text-bottom;
+		background: #e2e8f0;
+		animation: blink 1s steps(1) infinite;
+	}
+	.typing .typed::after {
+		content: "";
+	}
+	@keyframes blink {
+		50% {
+			opacity: 0;
+		}
+	}
+	.ok {
+		color: #86efac;
+	}
+	.err {
+		color: #fca5a5;
+	}
+	.dim {
+		color: #64748b;
+	}
+	.add {
+		color: #4ade80;
+	}
+	.del {
+		color: #f87171;
+	}
+	.hunk {
+		color: #67e8f9;
+	}
+	@media (max-width: 640px) {
+		.body {
+			height: 22rem;
+			font-size: 0.72rem;
+		}
+	}
+</style>
