@@ -18,6 +18,7 @@ const { lines, title = "~/acme" } = Astro.props;
 		<button type="button" class="replay" data-replay hidden>↻ Replay</button>
 	</div>
 	<div class="body" role="img" aria-label="Terminal demo: rosetta push, git diff, git commit, git push">
+		<div class="screen">
 		{
 			lines.map((line) =>
 				line.kind === "cmd" ? (
@@ -28,6 +29,7 @@ const { lines, title = "~/acme" } = Astro.props;
 			)
 		}
 		<div class="line cursor-line" data-cursor hidden><span class="prompt">$ </span><span class="cursor"></span></div>
+		</div>
 	</div>
 </div>
 
@@ -39,6 +41,18 @@ const { lines, title = "~/acme" } = Astro.props;
 		const cursor = term.querySelector<HTMLElement>("[data-cursor]");
 		const replay = term.querySelector<HTMLButtonElement>("[data-replay]");
 		const body = term.querySelector<HTMLElement>(".body");
+		const screen = term.querySelector<HTMLElement>(".screen");
+
+		// Behave like a console: the newest line is always at the bottom and
+		// older lines scroll off the top. Runs on every change, including each
+		// typed character, so it never lags behind.
+		const pin = () => {
+			if (!body) return;
+			body.scrollTop = body.scrollHeight;
+			// Fade the top edge only once lines have scrolled off it.
+			body.classList.toggle("clipped", body.scrollTop > 0);
+		};
+		if (screen) new ResizeObserver(pin).observe(screen);
 		const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 		let run = 0;
 
@@ -46,7 +60,6 @@ const { lines, title = "~/acme" } = Astro.props;
 			const id = ++run;
 			if (replay) replay.hidden = true;
 			for (const line of lines) line.hidden = true;
-			if (body) body.scrollTop = 0;
 
 			for (const line of lines) {
 				if (id !== run) return;
@@ -69,10 +82,8 @@ const { lines, title = "~/acme" } = Astro.props;
 					line.hidden = false;
 					await sleep(line.classList.contains("dim") ? 60 : 110);
 				}
-				if (body) body.scrollTop = body.scrollHeight;
 			}
 			if (cursor) cursor.hidden = false;
-			if (body) body.scrollTop = body.scrollHeight;
 			if (replay) replay.hidden = false;
 		}
 
@@ -80,6 +91,7 @@ const { lines, title = "~/acme" } = Astro.props;
 
 		if (reduced) {
 			if (cursor) cursor.hidden = false;
+			pin();
 			if (replay) replay.hidden = false;
 			continue;
 		}
@@ -109,7 +121,8 @@ const { lines, title = "~/acme" } = Astro.props;
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		padding: 0.6rem 0.9rem;
+		height: 2.6rem;
+		padding: 0 0.9rem;
 		background: #0b1222;
 		border-bottom: 1px solid #1e293b;
 	}
@@ -151,10 +164,14 @@ const { lines, title = "~/acme" } = Astro.props;
 		margin: 0;
 		padding: 1rem 1.1rem 1.2rem;
 		height: 27rem;
-		overflow: auto;
+		overflow: hidden;
+		overscroll-behavior: none;
 		font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 		font-size: 0.82rem;
 		line-height: 1.55;
+	}
+	.body.clipped {
+		mask-image: linear-gradient(to bottom, transparent 0, #000 2.25rem);
 	}
 	.line {
 		white-space: pre;
