@@ -1,10 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1408 1408" width="1408" height="1408">
-  <!-- Background -->
-  <rect width="1408" height="1408" fill="#cdc6ba"/>
-
-  <!-- Ground shadow -->
-  <ellipse cx="715" cy="1195" rx="510" ry="42" fill="#a29b90"/>
-
   <!-- Stone body -->
   <defs><path id="stone"
     d="M345 545
