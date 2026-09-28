@@ -46,6 +46,18 @@
 			"types": "./dist/types/next.d.ts",
 			"default": "./dist/esm/next.js"
 		},
+		"./react": {
+			"types": "./dist/types/react.d.ts",
+			"default": "./dist/esm/react.js"
+		},
+		"./astro": {
+			"types": "./dist/types/locale/astro.d.ts",
+			"default": "./dist/esm/astro.js"
+		},
+		"./locale": {
+			"types": "./dist/types/locale/core.d.ts",
+			"default": "./dist/esm/locale.js"
+		},
 		"./config": {
 			"types": "./dist/types/config.d.ts",
 			"default": "./dist/esm/config.js"
@@ -67,16 +79,26 @@
 		"lint:fix": "biome check --write"
 	},
 	"peerDependencies": {
-		"next": ">=14.0.0"
+		"astro": ">=4.0.0",
+		"next": ">=14.0.0",
+		"react": ">=18.0.0"
 	},
 	"peerDependenciesMeta": {
 		"next": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		},
+		"astro": {
 			"optional": true
 		}
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.12",
 		"@types/node": "22.15.3",
+		"@types/react": "^19.3.0",
+		"react": "^19.3.0",
 		"rollup": "^4.63.1",
 		"rollup-plugin-esbuild": "^6.1.1",
 		"typescript": "5.9.2",

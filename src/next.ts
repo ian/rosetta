@@ -85,3 +85,6 @@ export function cachedTranslate(
 	);
 	return run();
 }
+
+// Runtime locale layer for the App Router (middleware, server provider, action).
+export * from "./locale/next";
