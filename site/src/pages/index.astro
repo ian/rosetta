@@ -222,29 +222,6 @@ const faq = [
 		</section>
 
 		<section class="wrap">
-			<article class="note">
-				<h2>Why I built Rosetta</h2>
-				<p>
-					I run a lot of websites, and I want all of them in a dozen or more languages. Lingo.dev got the
-					workflow right: edit your English, push, and every locale follows. I liked it enough to build Rosetta
-					on the same ideas.
-				</p>
-				<p>
-					What I couldn't make work was the pricing. The free plan caps throughput at 100,000 tokens a day, and
-					translating a full page of copy into a dozen languages goes through that quickly. The next step up is
-					$99 a month before usage. For one big product that's reasonable. When you have a lot of sites, it
-					isn't cost-effective.
-				</p>
-				<p>
-					The expensive part of translation is the model, and I already pay for one. So Rosetta is the same
-					workflow, running in your own repo with your own key. You pay your model provider for the tokens you
-					use, and nothing else. It's free and open source, so anyone else in the same spot can use it too.
-				</p>
-				<p class="sig">— Ian</p>
-			</article>
-		</section>
-
-		<section class="wrap">
 			<h2>Why Rosetta</h2>
 			<div class="grid three">
 				{
@@ -579,29 +556,6 @@ npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json<
 		padding-top: 5rem;
 	}
 
-	/* Author note */
-	.note {
-		max-width: 46rem;
-		margin: 0 auto;
-		padding: 2rem 2.25rem;
-		background: var(--card);
-		border: 1px solid var(--line);
-		border-left: 3px solid var(--accent);
-		border-radius: 0.75rem;
-		font-size: 1.05rem;
-	}
-	.note h2 {
-		font-size: 1.35rem;
-	}
-	.note p {
-		margin: 0 0 1rem;
-	}
-	.sig {
-		font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive;
-		font-size: 1.6rem;
-		color: var(--accent);
-		margin: 1.25rem 0 0 !important;
-	}
 
 	/* Cards */
 	.grid {
@@ -798,9 +752,6 @@ npx rosetta push     <span class="c"># writes locale files + .rosetta/lock.json<
 		}
 		nav a:first-child {
 			display: none;
-		}
-		.note {
-			padding: 1.5rem 1.35rem;
 		}
 		.prompt {
 			padding: 1rem;
