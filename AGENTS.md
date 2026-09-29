@@ -112,7 +112,8 @@ git worktree add .worktrees/<short-desc> -b <type>/<short-desc> origin/main
 # work inside .worktrees/<short-desc>
 pnpm install                       # worktrees do NOT share node_modules
 pnpm lint && pnpm typecheck && pnpm test
-git commit -am "<type>: <short description>"
+git add -A
+git commit -m "<type>: <short description>"
 git push -u origin <type>/<short-desc>
 gh pr create --fill
 
