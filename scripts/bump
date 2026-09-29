@@ -1,11 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-# Bump the package version, commit, tag, and push.
+# Bump the package version, commit, and push to main. Pushing a new version
+# triggers .github/workflows/npm-publish.yml, which tests, builds, publishes to
+# npm, tags v<version>, and creates the GitHub Release.
+#
 # Usage:
-#   pnpm bump [patch|minor|major]          # stable release
-#   pnpm bump [premajor|preminor|prepatch|prerelease]   # beta prerelease (-beta.N)
-#   pnpm bump 1.0.0-beta.1                  # explicit version
+#   pnpm bump [patch|minor|major]                        # stable release
+#   pnpm bump [premajor|preminor|prepatch|prerelease]    # -beta.N prerelease
+#   pnpm bump 1.0.0-beta.2                               # explicit version
 
 VERSION_TYPE=${1:-patch}
 
@@ -23,11 +26,8 @@ VERSION=$(node -p "require('./package.json').version")
 
 git add package.json
 git commit -m "chore: bump version to $VERSION"
-git tag "v$VERSION"
-
 git push
-git push --tags
 
 echo ""
-echo "Bumped to v$VERSION and pushed."
-echo "Run 'pnpm release' to publish the GitHub release (triggers npm-publish)."
+echo "Bumped to v$VERSION and pushed. npm-publish is now publishing it:"
+echo "  gh run watch \$(gh run list --workflow npm-publish.yml -L 1 --json databaseId -q '.[0].databaseId')"

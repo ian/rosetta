@@ -763,26 +763,27 @@ never writes partial files.
 
 ## Releasing
 
-Releases publish automatically from GitHub Actions via npm
-[trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC), so no npm token
-is required.
+Releases publish automatically when the version changes. Bumping `version` in
+`package.json` on `main` triggers
+[`.github/workflows/npm-publish.yml`](.github/workflows/npm-publish.yml). The
+workflow tests, builds, and publishes to npm via
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC, so no npm
+token), then tags `v<version>` and creates the GitHub Release with generated notes.
 
 ```bash
-pnpm bump patch   # bump package.json, commit, tag, push
-pnpm release      # create the GitHub Release -> triggers npm-publish
+pnpm bump patch          # or minor / major
+pnpm bump prerelease     # 1.0.0-beta.1 → 1.0.0-beta.2
+pnpm bump 1.0.0          # explicit version
 ```
 
-- `pnpm bump` accepts `patch`, `minor`, or `major` (default `patch`); `premajor`,
-  `preminor`, `prepatch`, or `prerelease` for a `-beta.N` prerelease; or an explicit
-  version such as `1.0.0-beta.1`.
-- Prereleases publish under npm's `next` dist-tag (so `latest` doesn't move) and are
-  marked as prereleases on GitHub. Stable releases also move the `v<major>` tag that
-  `uses: ian/rosetta@v1` resolves to.
-- `pnpm release` creates the GitHub Release for the latest tag with generated release
-  notes, which triggers `.github/workflows/npm-publish.yml`.
-
-One-time setup (first publish and Trusted Publisher) is documented in
-[`.github/workflows/npm-publish.yml`](.github/workflows/npm-publish.yml).
+- `pnpm bump` only commits the new version and pushes it; the workflow does the rest.
+  A version bump merged through a PR works the same way.
+- Prereleases (`-beta.N`) publish under npm's `next` dist-tag, so `latest` doesn't
+  move, and are marked as prereleases on GitHub. Stable releases also move the
+  `v<major>` tag that `uses: ian/rosetta@v1` resolves to.
+- Pushes that don't change the version, and re-runs for an already-published
+  version, do nothing. `pnpm release` re-runs the workflow by hand
+  (`gh workflow run npm-publish.yml`).
 
 ## Development
 

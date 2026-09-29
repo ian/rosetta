@@ -72,7 +72,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"bump": "./scripts/bump",
-		"release": "./scripts/release",
+		"release": "gh workflow run npm-publish.yml",
 		"format": "biome format",
 		"format:fix": "biome format --write",
 		"lint": "biome check",
