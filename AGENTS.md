@@ -70,6 +70,47 @@ Before opening a change, run `pnpm lint && pnpm typecheck && pnpm test`, and
 - Never print, commit, or search for API keys. `rosetta check` must stay
   key-free.
 
+## Development workflow (git worktrees)
+
+Keep the root checkout on a clean, up-to-date `main`. Do all task work in a
+worktree so the root stays deployable and unrelated in-progress branches never
+mix.
+
+- **One task → one branch → one worktree**, created from `origin/main`.
+- Finish the active worktree (verify, commit, push, open a PR) before starting
+  another. Don't run two unfinished tasks in the same tree.
+- Don't leave actionable work uncommitted, unpushed, or outside a pull request.
+- If the project tracks work in Linear (or another issue tracker), link every
+  pull request to the ticket it closes — put the ticket ID in the PR title/body
+  and attach the PR URL on the ticket. Never close a ticket with an unlinked PR.
+- When a PR is merged or closed, remove its worktree and local branch, then
+  fast-forward root `main`.
+- Never `git stash pop` across differently-based worktrees — the stash carries
+  the whole original-branch diff and leaks stale changes into your branch.
+- Rebase onto `origin/main` before opening or updating a PR; never merge `main`
+  into the feature branch.
+- Worktrees do **not** share `node_modules` — run `pnpm install` in a fresh
+  worktree before dev, build, lint, or tests.
+
+This repo's existing worktrees are sibling directories (e.g. `../rosetta-<short-desc>`):
+
+```bash
+git fetch origin main
+git worktree add ../rosetta-<short-desc> -b <type>/<short-desc> origin/main
+
+# work inside ../rosetta-<short-desc>
+pnpm install
+pnpm lint && pnpm typecheck && pnpm test
+git commit -am "<type>: <short description>"
+git push -u origin <type>/<short-desc>
+gh pr create --fill
+
+# after the PR merges or closes
+git worktree remove ../rosetta-<short-desc>
+git branch -d <type>/<short-desc>
+git checkout main && git merge --ff-only origin/main
+```
+
 ## Releasing
 
 Releases publish from GitHub Actions via npm trusted publishing (OIDC); no npm
