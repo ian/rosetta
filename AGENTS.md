@@ -11,7 +11,21 @@ The published package is `rosetta-i18n` and installs a `rosetta` binary. Source
 is TypeScript, bundled with rollup + esbuild, declarations emitted by `tsc`.
 The marketing site lives in `site/` (Astro, deployed to Cloudflare Pages).
 
-This file is the source of truth for how to work here.
+This file is the source of truth for how to work here. It is kept up to date
+with the `startupkit` CLI (`npx startupkit agents`). This project does not run
+the StartupKit Stack, so it carries no stack-specific section.
+
+## How we work
+
+- **Default to action.** Fix before reporting. Escalate only for strategy
+  pivots, legal, or large spend.
+- **Ship in small, reviewable increments.** Completing a task without an open
+  pull request is an incomplete task.
+- **Decide with options.** Bring options + a recommendation + the tradeoff. If
+  there's no response in 30 minutes, go with your recommendation.
+- **Automate aggressively** — twice script it, three times workflow it.
+- **Link with full URLs.** Reference pull requests as
+  `https://github.com/ian/rosetta/pull/123`, never a bare `#123`.
 
 ## Commands
 
@@ -72,11 +86,12 @@ Before opening a change, run `pnpm lint && pnpm typecheck && pnpm test`, and
 
 ## Development workflow (git worktrees)
 
-Keep the root checkout on a clean, up-to-date `main`. Do all task work in a
-worktree so the root stays deployable and unrelated in-progress branches never
-mix.
+Keep the root checkout on a clean, up-to-date `main` — it represents production
+and is used for live verification only. Do all task work in a worktree so the
+root always stays deployable.
 
-- **One task → one branch → one worktree**, created from `origin/main`.
+- **One task → one ticket → one branch → one worktree**, created from
+  `origin/main`.
 - Finish the active worktree (verify, commit, push, open a PR) before starting
   another. Don't run two unfinished tasks in the same tree.
 - Don't leave actionable work uncommitted, unpushed, or outside a pull request.
@@ -89,27 +104,66 @@ mix.
   the whole original-branch diff and leaks stale changes into your branch.
 - Rebase onto `origin/main` before opening or updating a PR; never merge `main`
   into the feature branch.
-- Worktrees do **not** share `node_modules` — run `pnpm install` in a fresh
-  worktree before dev, build, lint, or tests.
-
-This repo's existing worktrees are sibling directories (e.g. `../rosetta-<short-desc>`):
 
 ```bash
 git fetch origin main
-git worktree add ../rosetta-<short-desc> -b <type>/<short-desc> origin/main
+git worktree add .worktrees/<short-desc> -b <type>/<short-desc> origin/main
 
-# work inside ../rosetta-<short-desc>
-pnpm install
+# work inside .worktrees/<short-desc>
+pnpm install                       # worktrees do NOT share node_modules
 pnpm lint && pnpm typecheck && pnpm test
 git commit -am "<type>: <short description>"
 git push -u origin <type>/<short-desc>
 gh pr create --fill
 
 # after the PR merges or closes
-git worktree remove ../rosetta-<short-desc>
+git worktree remove .worktrees/<short-desc>
 git branch -d <type>/<short-desc>
 git checkout main && git merge --ff-only origin/main
 ```
+
+`.worktrees/` is gitignored. Worktrees do **not** share `node_modules` — run
+`pnpm install` in a fresh worktree before dev, build, lint, or tests, or the
+first command fails on missing dependencies.
+
+## Linear
+
+- **Own the backlog**: create, triage, update, close. Urgent items get a ticket
+  AND immediate work.
+- **Keep statuses current** as you work — In Progress when you start, In Review
+  when a PR is open, Done when merged. Never let tickets drift from reality.
+- **Link the ticket to the code**: put the ticket ID in the branch name, commit
+  messages, and PR title/body (`type(scope): summary (STARTUP-123)`), and attach
+  the PR URL on the issue. A ticket is never closed by an unlinked PR.
+
+## SDLC (software development lifecycle)
+
+1. **Plan** — a ticket with the problem, scope, and acceptance criteria.
+2. **Build** — branch + worktree, small commits, no unrelated changes.
+3. **Verify** — lint, typecheck, tests, and a manual check of the change.
+4. **Review** — open a PR, link the ticket, pass CI.
+5. **Ship** — merge to `main`, then deploy from a clean, merged `main`.
+6. **Operate** — watch errors, analytics, and revenue; fix regressions first.
+
+## ADLC (agent development lifecycle)
+
+The agent owns the loop end to end: **triage → ticket → research → implement →
+verify → PR → merge → deploy → observe → close the ticket.** Nothing stops at
+"reported" — a task ends merged and verified.
+
+- **Compound context.** Keep this guide and project skills current, and write
+  down decisions as you make them.
+- **Verify before claiming done.** Run the checks; don't assume they pass.
+- **Escalate only** for strategy pivots, legal, or large spend.
+
+## Boundaries
+
+- No irreversible financial decisions without checking (ad spend, hiring, legal).
+- No deleting production databases or infrastructure without explicit
+  confirmation.
+- Never commit secrets.
+- Never run publish/release commands directly — releases go through review and
+  merge.
 
 ## Releasing
 
