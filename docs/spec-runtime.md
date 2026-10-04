@@ -200,7 +200,11 @@ routing settings, and the format settings.
   `useT` must sit under a `Provider` that names its namespaces (§8.1). Each
   provider sends only those namespaces, already merged, as plain strings. It
   sends them once, as part of the RSC payload for the segment it's rendered in.
-  In development, `useT` on a namespace that wasn't provided throws an error
+  Alongside the strings it sends a sparse map from key to supplying locale,
+  listing only the keys that fell back (e.g. `{ "calc.days": "en" }`), so the
+  client `useT` applies the same plural rules as the server. Keys missing from
+  the map use the route locale, so a fully translated namespace adds no bytes.
+  Number and date formatting still use the route locale. In development, `useT` on a namespace that wasn't provided throws an error
   naming the namespace to add. In production it renders the key and logs once.
 - **Recommended pattern.** Translate in server components and pass the resulting
   strings to client components as props. Use `useT` on the client only where the
