@@ -47,9 +47,13 @@ These are requirements, not goals. Each has a CI check (§10).
    middleware or proxy runs. With detection on, the proxy imports only the
    manifest (budget **≤ 5 kB**), never catalogs, and does no work on prefixed
    URLs.
-6. **At most one redirect, once.** Crawlers are never redirected. A human is
-   redirected at most once (first visit to an unprefixed URL, when their language
-   isn't the source). Redirect responses are `Cache-Control: private` and
+6. **At most one redirect per request.** Crawlers are never redirected. The
+   proxy is stateless and keeps no record of past redirects, so the limit is per
+   request: an unprefixed URL gets at most one redirect, straight to its final
+   locale, never a chain. A visitor who arrives on an unprefixed URL again may be
+   redirected again. In practice that's rare, because `Link` keeps them on
+   prefixed URLs, and a locale chosen with the switcher wins through the cookie.
+   Redirect responses are `Cache-Control: private` and
    `Vary: Cookie, Accept-Language`; page responses keep their normal caching.
 7. **No `Set-Cookie` on page responses.** Only an explicit choice (the switcher)
    writes the locale cookie, and it does so on the client. Pages stay cacheable
@@ -92,7 +96,7 @@ These are requirements, not goals. Each has a CI check (§10).
 | `rosetta-i18n/next` | server only | `defineI18n` (`getT`, `getLocale`, `htmlAttrs`, `Provider`, `alternates`, `sitemap`, `generateStaticParams`), plus the existing `createRosetta` / `cachedTranslate` |
 | `rosetta-i18n/next/client` | browser, server | `Link`, `usePathname`, `useRouter`, `LocaleSwitcher`, `LocaleSuggestion`, and re-exports of `useT` / `useLocale` (`"use client"`) |
 | `rosetta-i18n/next/plugin` | Node (build) | `withRosetta` |
-| `rosetta-i18n/next/proxy` | edge, Node | `createProxy` (detection only; imports the manifest, nothing else) |
+| `rosetta-i18n/next/proxy` | edge, Node | `proxy` (ready-made, re-exportable from `proxy.ts`/`middleware.ts`) and `rosettaProxy(request)` (for composing with your own middleware). Detection only; imports the manifest, nothing else |
 | `rosetta-i18n/astro` | Node (build/SSR), browser | the integration, `getT`, `localePaths`, components |
 
 - **Server/client split.** `rosetta-i18n/next` is server-only (it imports
@@ -182,11 +186,14 @@ routing settings, and the format settings.
   (`pt-BR` → `pt`), then the source locale, then the key itself. Steps 3 and 4
   warn in development.
 - **Resolved once, on the server.** For each locale, the server merges the
-  target catalog over the source catalog once and caches the result in module
-  scope. During `next build` that happens once per locale for the whole build.
-- **A fallback message formats with the source locale's plural rules and the
-  requested locale's number and date formatting.** An English `one`/`other`
-  message therefore stays grammatical when shown to an Arabic visitor.
+  catalogs in the order of the fallback chain (target, then base language if
+  configured, then source) once, and caches the result in module scope. During
+  `next build` that happens once per locale for the whole build.
+- **Each message's plural rules come from the locale that supplied it;
+  number and date formatting always use the requested locale.** A message that
+  fell back to `pt` uses `pt` plural rules, and one that fell back to English
+  uses English rules. An English `one`/`other` message therefore stays
+  grammatical when shown to an Arabic visitor.
 - **`ignoredKeys`** (omitted from target files) render in the source language.
   That's the intent of ignoring a key.
 - **What the client gets.** Nothing, by default. A client component that needs
@@ -367,8 +374,19 @@ from `useLocale()` and binds it into the action.
 | `/pt-br/pricing` | `redirects` | 308 to `/pt-BR/pricing` |
 | `/_next/*`, `/api/*`, files, non-`localizedPaths` | — | untouched |
 
-Under `prefix-always`, unprefixed paths get a 307 redirect to the source locale,
-and the proxy replaces that redirect when detection is on.
+Under `prefix-always`, the unprefixed-path redirect depends on detection,
+because Next.js runs `redirects` from `next.config` *before* the proxy (order:
+`headers`, `redirects`, proxy, `beforeFiles` rewrites, routes). A static
+redirect would therefore fire before the proxy could negotiate.
+
+- **Detection off or `suggest`:** `withRosetta` emits a static 307 from each
+  unprefixed localized path to the source locale (`/pricing` → `/en/pricing`).
+- **Detection `redirect`:** `withRosetta` emits **no** unprefixed-path redirect.
+  The proxy handles both decisions: it sends a 307 to the negotiated locale,
+  which may be the source locale.
+
+The prefixed-path redirects in the table (`/en/…` and case fixes) don't overlap
+with the proxy, which ignores prefixed paths, so they stay static in both cases.
 
 **Detection (`detect: "redirect"`)** adds a proxy that only decides whether to
 redirect:
@@ -381,9 +399,10 @@ export const config = { matcher: ["/((?!api|_next|.*\\..*).*)"] };  // must be a
 
 - It returns immediately for prefixed paths and non-localized paths, and for
   bots.
-- For an unprefixed path, it negotiates (§7). If the result is the source
-  locale, it passes the request through to the static rewrite. Otherwise it
-  sends a 307 to the prefixed URL with `Cache-Control: private` and
+- For an unprefixed path, it negotiates (§7). Under `prefix-except-default`,
+  if the result is the source locale it passes the request through to the
+  static rewrite. Otherwise (and always under `prefix-always`), it sends a 307
+  to the prefixed URL with `Cache-Control: private` and
   `Vary: Cookie, Accept-Language`.
 - It never sets cookies and never touches catalogs. Users with their own
   middleware call `rosettaProxy(request)` and use the returned response or
@@ -437,10 +456,13 @@ import rosetta from "rosetta-i18n/astro";
 export default defineConfig({ integrations: [rosetta()] });
 ```
 
-- The integration sets Astro's `i18n` config (`locales`, `defaultLocale`,
-  `prefixDefaultLocale`) with `routing: "manual"`, so Astro supplies
-  `Astro.currentLocale` and its URL helpers and Rosetta owns routing. That
-  avoids running two routing layers.
+- The integration sets Astro's `i18n` config (`locales`, `defaultLocale`)
+  with `routing: "manual"`, so Astro supplies `Astro.currentLocale` and its URL
+  helpers and Rosetta owns routing. That avoids running two routing layers.
+  Astro allows no other routing options (such as `prefixDefaultLocale`) with
+  `routing: "manual"`, so the integration sets none. Rosetta applies the
+  default-locale prefix strategy (`routing.strategy`) itself, through
+  `localePaths` and its own middleware.
 - **Pages** use one `src/pages/[...locale]/` tree. `localePaths` returns an
   undefined `locale` param for the source locale and the prefix for the others:
 
