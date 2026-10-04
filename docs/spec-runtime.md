@@ -37,7 +37,7 @@ These are requirements, not goals. Each has a CI check (§10).
    that calls `t()` sends only the resulting HTML. Messages reach the client only
    for namespaces you explicitly hand to a client provider (§5.3).
 3. **No duplicate payloads.** Fallback to the source locale is resolved on the
-   server, once per locale. The client never receives both a target catalog and
+   server (or at build time, for plain React), once per locale. The client never receives both a target catalog and
    the source catalog.
 4. **Small client runtime.** Lookup plus the ICU formatter is tree-shakeable and
    budgeted at **≤ 3 kB min+gzip**. A page with no client-side `t()` ships
@@ -178,7 +178,8 @@ routing settings, and the format settings.
 ### 5.3 Loading, fallback, and what reaches the client
 
 - **Loading.** On the server, messages load through a `load(locale)` you supply
-  (Next, React) or a generated virtual module (Astro). Multi-file configs
+  (Next) or a generated virtual module (Astro). Plain React loads prebuilt
+  catalogs instead (below). Multi-file configs
   (`locales/en/**/*.json`) map each file to a namespace from its path relative to
   the pattern's static prefix: `locales/en/auth/login.json` becomes
   `auth.login`. `rosetta init` generates the matching `load`.
@@ -196,16 +197,24 @@ routing settings, and the format settings.
   grammatical when shown to an Arabic visitor.
 - **`ignoredKeys`** (omitted from target files) render in the source language.
   That's the intent of ignoring a key.
-- **What the client gets.** Nothing, by default. A client component that needs
-  `useT` must sit under a `Provider` that names its namespaces (§8.1). Each
-  provider sends only those namespaces, already merged, as plain strings. It
-  sends them once, as part of the RSC payload for the segment it's rendered in.
-  Alongside the strings it sends a sparse map from key to supplying locale,
-  listing only the keys that fell back (e.g. `{ "calc.days": "en" }`), so the
-  client `useT` applies the same plural rules as the server. Keys missing from
-  the map use the route locale, so a fully translated namespace adds no bytes.
-  Number and date formatting still use the route locale. In development, `useT` on a namespace that wasn't provided throws an error
-  naming the namespace to add. In production it renders the key and logs once.
+- **Client catalogs carry their fallback locales.** Every merged catalog that
+  reaches the client comes with a sparse `fallbacks` map from key to supplying
+  locale, listing only the keys that fell back (e.g. `{ "calc.days": "en" }`).
+  Client `useT` uses it to apply the same plural rules as the server. Keys
+  missing from the map use the active locale, so a fully translated catalog
+  adds no bytes. Number and date formatting always use the active locale.
+- **What the client gets in Next.js.** Nothing, by default. A client component
+  that needs `useT` must sit under a `Provider` that names its namespaces
+  (§8.1). Each provider sends only those namespaces, already merged, with their
+  `fallbacks` map. It sends them once, as part of the RSC payload for the
+  segment it's rendered in. In development, `useT` on a namespace that wasn't
+  provided throws an error naming the namespace to add. In production it
+  renders the key and logs once.
+- **What the client gets in plain React.** There's no server to merge, so the
+  merge happens at build time: `rosetta manifest --messages <dir>` writes one
+  `<dir>/<locale>.json` per locale, shaped `{ messages, fallbacks }`. The
+  provider's `load` and `initialMessages` take that shape (§8.2). `rosetta
+  check` fails (exit `3`) if those files are stale, as with the manifest.
 - **Recommended pattern.** Translate in server components and pass the resulting
   strings to client components as props. Use `useT` on the client only where the
   message changes with client state (a live count, a form error).
@@ -436,13 +445,17 @@ import manifest from "./i18n.json";   // from `rosetta manifest`
   manifest={manifest}
   locale={locale}                                   // you own routing, or:
   detect                                            // URL prefix → cookie → navigator.languages
-  load={(l) => import(`./messages/${l}.json`)}      // one chunk per locale
-  initialMessages={ssrMessages}                     // optional: skip the first fetch
+  load={(l) => import(`./i18n/${l}.json`)}          // from `rosetta manifest --messages src/i18n`; one chunk per locale
+  initialMessages={ssrMessages}                     // optional, same { messages, fallbacks } shape: skip the first fetch
 >
   <App />
 </RosettaProvider>
 ```
 
+- `load` and `initialMessages` take the `{ messages, fallbacks }` files that
+  `rosetta manifest --messages` writes (§5.3), already merged with the source
+  locale. The provider never merges catalogs or fetches the source catalog
+  itself.
 - The first locale's catalog should load in parallel with the app, not after
   it. The provider exports `preloadLocale(locale)` so an entry point can start
   the import before React renders.
@@ -499,9 +512,9 @@ export default defineConfig({ integrations: [rosetta()] });
 |---|---|---|
 | `rosetta init --next` | Writes `i18n.ts` (with `next/root-params` on 16.3+), wraps `next.config`, and on `detect: "redirect"` writes `proxy.ts` or `middleware.ts`. Prints the manual move of `app/*` into `app/[locale]/`; `--move-app` does the move with `git mv`, and moves non-localized routes into a `(unlocalized)` group with its own root layout. | `0`, `2` |
 | `rosetta init --astro` | Adds the integration; `--move-pages` moves pages under `src/pages/[...locale]/`. | `0`, `2` |
-| `rosetta manifest` | Prints the runtime manifest for plain React apps. | `0`, `2` |
+| `rosetta manifest` | Prints the runtime manifest for plain React apps. With `--messages <dir>`, also writes one merged `{ messages, fallbacks }` catalog per locale into `<dir>` (§5.3). | `0`, `2` |
 | `rosetta types` | Writes `rosetta.d.ts`, with message keys and argument types from the source catalog. | `0`, `2` |
-| `rosetta check` (extended) | Adds the source lint (§6) and the stale-manifest check (§5.2). | unchanged: `0`, `2`, `3` |
+| `rosetta check` (extended) | Adds the source lint (§6) and the stale-manifest and stale-catalog checks (§5.2, §5.3). | unchanged: `0`, `2`, `3` |
 
 ## 10. Testing
 
@@ -526,12 +539,16 @@ export default defineConfig({ integrations: [rosetta()] });
   rosetta.tools site. CI checks that the HTML output escapes a rich-text
   message containing `<script>`.
 - **Hydration:** render on the server and hydrate on the client, asserting no
-  mismatch warnings for dates, numbers and plurals in `ar`, `ja` and `pt-BR`.
+  mismatch warnings for dates, numbers and plurals in `ar`, `ja`, `pt-BR` and `ru`.
+  The fixtures include a message that falls back to the source locale, so the
+  client's `fallbacks` map is exercised (e.g. 21 in `ru` must render the English
+  `other` form on both sides).
 
 ## 11. Phases
 
 1. **Core and `/react`:** the AST parser refactor, the formatter, fallback,
-   negotiation, the provider and hooks, and `rosetta manifest`, plus the source
+   negotiation, the provider and hooks, and `rosetta manifest` (with
+   `--messages`), plus the source
    lint in `check`.
 2. **`/next`:** the plugin (manifest, rewrites, redirects), `defineI18n` with
    root-params and explicit modes, `Provider`, navigation, SEO helpers, the proxy,
