@@ -1,6 +1,7 @@
 # Rosetta runtime spec: React, Next.js, Astro
 
-- **Status:** Draft 2, for discussion
+- **Status:** Accepted (Draft 2, decisions in §12 settled 2026-10-04). §13
+  lists questions to resolve during implementation.
 - **Builds on:** [`spec-v1.md`](./spec-v1.md), which covers translation. This spec covers
   rendering and routing.
 - **Package:** the same `rosetta-i18n`, with new entry points under
@@ -562,27 +563,29 @@ export default defineConfig({ integrations: [rosetta()] });
    also build-time extraction of the namespaces client components use, so
    `Provider messages` can be generated.
 
-## 12. Decisions to confirm
+## 12. Decisions
 
-1. **Own runtime, not a preset on next-intl.** Proposed: yes.
-2. **`prefix-except-default` by default.** Proposed: yes.
-3. **Missing keys fall back to the source locale, resolved on the server.**
-   Proposed: yes.
+All seven were accepted on 2026-10-04.
+
+1. **Own runtime, not a preset on next-intl.** Accepted.
+2. **`prefix-except-default` by default.** Accepted.
+3. **Missing keys fall back to the source locale**, resolved on the server (or
+   at build time, for plain React). Accepted.
 4. **Next.js support:** the routing runtime needs Next 15+. Automatic locale
    resolution needs 16.3+ (`next/root-params`). Next 15–16.2 get explicit mode
-   rather than a header-based fallback. Proposed: yes. The alternative, a
+   rather than a header-based fallback. Accepted. The rejected alternative, a
    `setRequestLocale`-style store based on React `cache()`, works on 15, but it
    has to be called in every layout and page, and next-intl has already moved
    off it.
-5. **Default detection: `redirect` or `suggest`.** `redirect` gives the right
-   language on first paint, at the cost of a proxy invocation on every
-   unprefixed request and one 307 per new visitor. `suggest` costs no server
-   work but shows the source language first. Proposed: `redirect`, with
-   `suggest` one config line away.
+5. **Default detection is `redirect`**, with `suggest` one config line away.
+   `redirect` gives the right language on first paint, at the cost of a proxy
+   invocation on every unprefixed request and one 307 per new visitor.
+   `suggest` costs no server work but shows the source language first.
+   Accepted.
 6. **Client messages are opt-in per namespace**; nothing is sent by default.
-   Proposed: yes. It's the one place where ergonomics give way to performance, and
-   the dev error makes it quick to fix.
-7. **Scaffolding doesn't move `app/` unless `--move-app` is passed.** Proposed: yes.
+   It's the one place where ergonomics give way to performance, and the dev
+   error makes it quick to fix. Accepted.
+7. **Scaffolding doesn't move `app/` unless `--move-app` is passed.** Accepted.
 
 ## 13. Open questions
 
