@@ -304,7 +304,7 @@ import { locale } from "next/root-params";          // Next 16.3+
 import { defineI18n } from "rosetta-i18n/next";
 export const i18n = defineI18n({
   locale,                                            // omit on Next 15–16.2
-  load: (l) => import(`./messages/${l}.json`),
+  load: (l) => import(`./messages/${l}.json`).then((m) => m.default),
 });
 ```
 
@@ -445,7 +445,8 @@ import manifest from "./i18n.json";   // from `rosetta manifest`
   manifest={manifest}
   locale={locale}                                   // you own routing, or:
   detect                                            // URL prefix → cookie → navigator.languages
-  load={(l) => import(`./i18n/${l}.json`)}          // from `rosetta manifest --messages src/i18n`; one chunk per locale
+  // from `rosetta manifest --messages src/i18n`; one chunk per locale
+  load={(l) => import(`./i18n/${l}.json`).then((m) => m.default)}
   initialMessages={ssrMessages}                     // optional, same { messages, fallbacks } shape: skip the first fetch
 >
   <App />
