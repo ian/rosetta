@@ -38,7 +38,7 @@ inputs:
     default: ""
   node-version:
     description: Node.js version to set up. Set to "" to use the runner's Node.
-    default: "22"
+    default: "22.23.4"
 
 outputs:
   changed:

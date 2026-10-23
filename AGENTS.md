@@ -42,7 +42,7 @@ the StartupKit Stack, so it carries no stack-specific section.
 | Create GitHub Release (triggers npm publish) | `pnpm release` |
 | Site dev / build | `pnpm --dir site dev` / `pnpm --dir site build` |
 
-Package manager is **pnpm** (`pnpm@9.7.1`). Node 20+ (CI runs 20, 22, 24).
+Package manager is **pnpm** (`pnpm@9.7.1`). Node 22+ (CI runs 22 and 24, which float to the newest patched release).
 
 Before opening a change, run `pnpm lint && pnpm typecheck && pnpm test`, and
 `pnpm build` if you touched anything that affects the published output.
